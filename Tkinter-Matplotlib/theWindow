@@ -1,0 +1,102 @@
+# -*- coding: utf-8 -*-
+from __future__ import print_function
+import Tkinter as tk
+from tkinter import ttk
+import matplotlib.pyplot as plt
+import numpy as np
+from Tkinter import *
+import matplotlib
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+
+
+class IndexTracker(object):
+    def __init__(self, ax, X):
+        self.ax = ax
+        ax.set_title('use scroll wheel to navigate images')
+
+        self.X = X
+        rows, cols, self.slices = X.shape
+        self.ind = self.slices//2
+
+        self.im = ax.imshow(self.X[:, :, self.ind])
+        self.update()
+
+    def onscroll(self, event):
+        print("%s %s" % (event.button, event.step))
+        if event.button == 'up':
+            self.ind = (self.ind + 1) % self.slices
+        else:
+            self.ind = (self.ind - 1) % self.slices
+        self.update()
+
+    def update(self):
+        self.im.set_data(self.X[:, :, self.ind])
+        #一定要加self否则tracker = IndexTracker(ax, X)无法调用
+        self.ax.set_ylabel('slice %s' % self.ind)
+        self.im.axes.figure.canvas.draw()
+
+
+def drawPic():
+    '''
+    以前plt.subplots返回figure,axes
+    这里figure由主函数drawPic.f = Figure(figsize=(5, 4), dpi=100)产生
+    axes返回加在figure上
+    '''
+    drawPic.a = drawPic.f.add_subplot(111)
+    X = np.random.rand(20, 20, 40)
+    tracker = IndexTracker(drawPic.a, X)
+
+    drawPic.f.canvas.mpl_connect('scroll_event', tracker.onscroll)
+    # 一定要加这个不然就不会显示后面滚动的结果
+    drawPic.f.show()
+    drawPic.canvas.show()
+
+
+if __name__ == '__main__':
+    window=tk.Tk()
+    window.title('my window')
+    window.geometry('1200x800')
+
+    # 1.the content part
+    frame_content=tk.Frame(window,bg='white')
+    frame_content.place(x=5,y=5,width=180,height=150)
+
+    label1=tk.Label(frame_content,text='visualize the content',bg='white')
+    label1.pack()
+
+    #  choose the picture
+    number = tk.StringVar()
+    numberChosen = ttk.Combobox(frame_content, width=12, textvariable=number)
+    numberChosen['values'] = range(1,31)     # 设置下拉列表的值
+    numberChosen.pack()      # 设置其在界面中出现的位置  column代表列   row 代表行
+    numberChosen.current(0)
+
+    # the buttons
+    b1=tk.Button(frame_content,text='the 1st layer',height=1,width=15,command=drawPic)
+    b1.pack()
+    b2=tk.Button(frame_content,text='the 2nd layer',height=1,width=15,command=drawPic)
+    b2.pack()
+    b3=tk.Button(frame_content,text='the 3rd layer',height=1,width=15,command=drawPic)
+    b3.pack()
+
+    # 2. the output visualize
+    frame_output=tk.Frame(window,bg='white')
+    frame_output.place(x=5,y=160,width=180,height=80)
+
+    label1=tk.Label(frame_output,text='visualize the output',bg='white')
+    label1.pack()
+
+    button_output=tk.Button(frame_output,text='the output',height=1,width=15).pack()
+
+    # 3. the canvas
+    matplotlib.use('TkAgg')
+    drawPic.f = Figure(figsize=(5, 4), dpi=100)
+    # panel=tk.Canvas(window,bg='gray').place(x=190,y=5,width=1000,height=780) # 黑色显示图片区域
+
+    # 创建一个canvas对象，canvas对象需要pack，使用canvas.get_tk_widget().pack
+    drawPic.canvas = FigureCanvasTkAgg(drawPic.f, master=window)
+    drawPic.canvas.show()
+    drawPic.canvas.get_tk_widget().place(x=190,y=5,width=1000,height=780)
+
+    window.mainloop()
