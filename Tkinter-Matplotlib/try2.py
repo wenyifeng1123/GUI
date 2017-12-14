@@ -1,18 +1,11 @@
-import matplotlib
-matplotlib.use('TkAgg')
-
-from numpy import arange, sin, pi
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
-# implement the default mpl key bindings
-from matplotlib.backend_bases import key_press_handler
-import numpy as np
+#coding:utf-8
+from __future__ import print_function
 import matplotlib.pyplot as plt
-
-
+import numpy as np
+from Tkinter import *
+import matplotlib
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-
-import sys
-
 
 class IndexTracker(object):
     def __init__(self, ax, X):
@@ -36,52 +29,41 @@ class IndexTracker(object):
 
     def update(self):
         self.im.set_data(self.X[:, :, self.ind])
-        ax.set_ylabel('slice %s' % self.ind)
+        #一定要加self否则tracker = IndexTracker(ax, X)无法调用
+        self.ax.set_ylabel('slice %s' % self.ind)
         self.im.axes.figure.canvas.draw()
 
 
-if sys.version_info[0] < 3:
-    import Tkinter as Tk
-else:
-    import tkinter as Tk
+def drawPic():
+    drawPic.a = drawPic.f.add_subplot(111)
+    X = np.random.rand(20, 20, 40)
+    tracker = IndexTracker(drawPic.a, X)
 
-root = Tk.Tk()
-root.wm_title("Embedding in TK")
-
-
-f = Figure(figsize=(8,6), dpi=100)
-fig, ax = plt.subplots(1, 1)
-X = np.random.rand(20, 20, 40)
-tracker = IndexTracker(ax, X)
-fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
-fig.show()
-
-# a tk.DrawingArea
-canvas = FigureCanvasTkAgg(f, master=root)
-canvas.show()
-canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+    drawPic.f.canvas.mpl_connect('scroll_event', tracker.onscroll)
+    #plt.show()
+    
 
 
-toolbar = NavigationToolbar2TkAgg(canvas, root)
-toolbar.update()
-canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+    #绘制这些随机点的散点图，颜色随机选取
+    # drawPic.a.scatter(x,y,s=3,color=color[np.random.randint(len(color))])
+    # drawPic.a.set_title('Demo: Draw N Random Dot')
+    drawPic.canvas.show()
 
 
-# def on_key_event(event):
-#     print('you pressed %s' % event.key)
-#     key_press_handler(event, canvas, toolbar)
-#
-# canvas.mpl_connect('key_press_event', on_key_event)
+if __name__ == '__main__':
+    matplotlib.use('TkAgg')
+    root = Tk()
+    # 在Tk的GUI上放置一个画布，并用.grid()来调整布局
+    drawPic.f = Figure(figsize=(5, 4), dpi=100)
+
+    drawPic.canvas = FigureCanvasTkAgg(drawPic.f, master=root)
+    drawPic.canvas.show()
+    drawPic.canvas.get_tk_widget().grid(row=0, columnspan=3)
+
+    Button(root,text='画图',command=drawPic).grid(row=1,column=2,columnspan=3)
+
+    #启动事件循环
+    root.mainloop()
 
 
-def _quit():
-    root.quit()     # stops mainloop
-    root.destroy()  # this is necessary on Windows to prevent
-                    # Fatal Python Error: PyEval_RestoreThread: NULL tstate
 
-button = Tk.Button(master=root, text='Quit', command=_quit)
-button.pack(side=Tk.BOTTOM)
-
-Tk.mainloop()
-# If you put root.destroy() here, it will cause an error if
-# the window is closed with the window manager.
