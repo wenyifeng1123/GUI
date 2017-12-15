@@ -1,0 +1,159 @@
+# -*- coding: utf-8 -*-
+from __future__ import print_function
+import Tkinter as tk
+from tkinter import ttk
+import matplotlib.pyplot as plt
+import numpy as np
+from Tkinter import *
+import matplotlib
+import os
+import dicom
+import dicom_numpy
+from UnpatchNew import*
+import scipy.io as sio
+import matplotlib as mpl
+from collections import Counter
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+
+class IndexTracker(object):
+    def __init__(self, ax, X, Y, Z, fig):
+        self.ax = ax
+        ax.set_title('Axial View')
+
+        self.X = X
+        rows1, cols1, self.slices = X.shape
+        self.ind = self.slices//2
+        self.Y = Y
+        self.Z = Z
+        self.fig = fig
+
+        self.update()
+
+    def onscroll(self, event):
+        print("%s %s" % (event.button, event.step))
+        if event.button == 'up':
+            self.ind = (self.ind + 1) % self.slices
+        else:
+            self.ind = (self.ind - 1) % self.slices
+        plt.cla() # not clf
+        self.update()
+
+    def update(self):
+        self.im1 = drawPic.a.imshow(np.swapaxes(self.X[:, :, self.ind], 0, 1), cmap='gray', vmin=0, vmax=2094)
+
+        self.cmap1 = mpl.colors.ListedColormap(['blue', 'pink', 'violet', 'yellow', 'green'])
+        self.im2 = drawPic.a.imshow(np.swapaxes(self.Y[:, :, self.ind], 0, 1), cmap=self.cmap1, alpha=.3, vmin=1, vmax=6)
+
+        plt.rcParams['hatch.color'] = 'r'
+        self.im3 = drawPic.a.contourf(np.transpose(self.Z[:, :, self.ind]), hatches=[None, '\\\\', 'XXX', '///'], colors='none', edges='r')
+
+        drawPic.a.set_ylabel('slice %s' % self.ind)
+        self.fig.canvas.draw_idle()
+
+
+def drawPic():
+
+    drawPic.a = drawPic.f.add_subplot(111)
+    tracker = IndexTracker(drawPic.a, voxel_ndarray, IType, IArte, drawPic.f)
+    drawPic.f.canvas.mpl_connect('scroll_event', tracker.onscroll)
+
+
+    drawPic.f.xlim(0, voxel_ndarray.shape[0] * dx)
+    drawPic.f.ylim(voxel_ndarray.shape[1] * dy, 0)
+    drawPic.f.colorbar(tracker.im2)
+
+    plt.show()
+
+    # 一定要加这个不然就不会显示后面滚动的结果
+    drawPic.f.show()
+    drawPic.canvas.show()
+
+
+
+
+if __name__ == '__main__':
+    PathDicom = "E:/pycharm/workspace/GUI_Sebastian_Milde/t1_tse_tra_Kopf_Motion_0003"
+    files = sorted([os.path.join(PathDicom, file) for file in os.listdir(PathDicom)], key=os.path.getctime)
+    datasets = [dicom.read_file(f) \
+                            for f in files]
+    try:
+        voxel_ndarray, pixel_space = dicom_numpy.combine_slices(datasets)
+    except dicom_numpy.DicomImportException:
+        raise
+    dx, dy, dz = 1.0, 1.0, pixel_space[2][2]
+
+    PatchSize = np.array((40.0, 40.0))     # only 2 elements
+    PatchOverlay = 0.5
+    Path = "Pred_result.mat"
+    conten = sio.loadmat(Path)
+    prob_test = conten['prob_pre']
+
+    IndexType = np.argmax(prob_test, 1)
+    IndexType[IndexType==0] = 1
+    IndexType[(IndexType>1) & (IndexType<4)] = 2
+    IndexType[(IndexType>6) & (IndexType<9)] = 3
+    IndexType[(IndexType>3) & (IndexType<7)] = 4
+    IndexType[IndexType>8] = 5
+
+    a = Counter(IndexType).most_common(1)
+    domain = a[0][0]
+
+    PType = np.delete(prob_test,[1,3,5,6,8,10],1) # only 5 region left
+    PArte = np.delete(prob_test,[0,2,4,7,9],1)
+    PArte[:,[4,5]] = PArte[:,[5,4]]
+    PNew = np.concatenate((PType, PArte), axis=1)
+    IndexArte = np.argmax(PNew,1)
+
+    IType = UnpatchType(IndexType, domain, PatchSize, PatchOverlay, voxel_ndarray.shape)
+    IArte = UnpatchArte(IndexArte, PatchSize, PatchOverlay, voxel_ndarray.shape)
+
+
+    # draw the window
+    window=tk.Tk()
+    window.title('my window')
+    window.geometry('1200x800')
+
+    # 1.the content part
+    frame_content=tk.Frame(window,bg='white')
+    frame_content.place(x=5,y=5,width=180,height=150)
+
+    label1=tk.Label(frame_content,text='visualize the content',bg='white')
+    label1.pack()
+
+    #  choose the picture
+    number = tk.StringVar()
+    numberChosen = ttk.Combobox(frame_content, width=12, textvariable=number)
+    numberChosen['values'] = range(1,31)     # 设置下拉列表的值
+    numberChosen.pack()      # 设置其在界面中出现的位置  column代表列   row 代表行
+    numberChosen.current(0)
+
+    # the buttons
+    b1=tk.Button(frame_content,text='the 1st layer',height=1,width=15,command=drawPic)
+    b1.pack()
+    b2=tk.Button(frame_content,text='the 2nd layer',height=1,width=15,command=drawPic)
+    b2.pack()
+    b3=tk.Button(frame_content,text='the 3rd layer',height=1,width=15,command=drawPic)
+    b3.pack()
+
+    # 2. the output visualize
+    frame_output=tk.Frame(window,bg='white')
+    frame_output.place(x=5,y=160,width=180,height=80)
+
+    label1=tk.Label(frame_output,text='visualize the output',bg='white')
+    label1.pack()
+
+    button_output=tk.Button(frame_output,text='the output',height=1,width=15,command=drawPic).pack()
+
+    # 3. the canvas
+    matplotlib.use('TkAgg')
+    drawPic.f = Figure(figsize=(5, 4), dpi=100)
+    # panel=tk.Canvas(window,bg='gray').place(x=190,y=5,width=1000,height=780) # 黑色显示图片区域
+
+    # 创建一个canvas对象，canvas对象需要pack，使用canvas.get_tk_widget().pack
+    drawPic.canvas = FigureCanvasTkAgg(drawPic.f, master=window)
+    drawPic.canvas.show()
+    drawPic.canvas.get_tk_widget().place(x=190,y=5,width=1000,height=780)
+
+    window.mainloop()
+
