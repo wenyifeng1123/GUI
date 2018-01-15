@@ -221,8 +221,10 @@ def plot_all_weights(model, n=64, **kwargs):
     layers_to_show = []
     
     # Here only choose the first 2 layers, since the other layers don't have weights, the 'weights' part of others are empty
-    for i, layer in enumerate(model.layers[0:2]):
+    for i, layer in enumerate(model.layers[:]):
         if hasattr(layer, "weights"):
+            if len(layer.weights)==0:
+                continue
             weights = layer.weights[0].container.data
             if weights.ndim == 4:
                 layers_to_show.append((i, layer))
