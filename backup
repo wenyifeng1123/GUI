@@ -7,178 +7,116 @@ reference to hadim https://gist.github.com/hadim/9fedb72b54eb3bc453362274cd347a6
 """
 import theano
 import theano.tensor as T
-
 import os
 import os.path
-
-
+import sys
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
-
-
-
 import glob
 import yaml
 import h5py
-
-
 from DatabaseInfo import DatabaseInfo
 import utils.DataPreprocessing as datapre
-import utils.Training_Test_Split as ttsplit
-import cnn_main
+from keras.models import load_model
+from network_visualization import make_mosaic
+from keras.utils import plot_model
 
+def plot_feature_map(model, layer_id, X, n=256, ax=None, **kwargs):
+    """
+    """
+    import keras.backend as K
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+    layer = model.layers[layer_id]
 
-def make_mosaic(im, nrows, ncols, border=1):
+    try:
+        get_activations = K.function([model.layers[0].input, K.learning_phase()], [layer.output])
+        activations = get_activations([X,0])[0]
+    except:
+        # Ugly catch, a cleaner logic is welcome here.
+        raise Exception("This layer cannot be plotted.")
 
-    import numpy.ma as ma
+    # For now we only handle feature map with 4 dimensions
+    if activations.ndim != 4:
+        raise Exception("Feature map of '{}' has {} dimensions which is not supported.".format(layer.name,
+                                                                                               activations.ndim))
 
-    nimgs = len(im)
-    imshape = im[0].shape
+    # Set default matplotlib parameters
+    if not 'interpolation' in kwargs.keys():
+        kwargs['interpolation'] = "none"
 
-    mosaic = ma.masked_all((nrows * imshape[0] + (nrows - 1) * border,
-                            ncols * imshape[1] + (ncols - 1) * border),
-                           dtype=np.float32)
+    if not 'cmap' in kwargs.keys():
+        kwargs['cmap'] = "gray"
 
-    paddedh = imshape[0] + border
-    paddedw = imshape[1] + border
-    im
-    for i in range(nimgs):
-        row = int(np.floor(i / ncols))
-        col = i % ncols
+    fig = plt.figure(figsize=(15, 15))
 
-        mosaic[row * paddedh:row * paddedh + imshape[0],
-        col * paddedw:col * paddedw + imshape[1]] = im[i]
+    # Compute nrows and ncols for images
+    n_mosaic = len(activations)
+    nrows = int(np.round(np.sqrt(n_mosaic)))
+    ncols = int(nrows)
+    if (nrows ** 2) < n_mosaic:
+        ncols += 1
 
-    return mosaic
+    # Compute nrows and ncols for mosaics
+    if activations[0].shape[0] < n:
+        n = activations[0].shape[0]
 
+    nrows_inside_mosaic = int(np.round(np.sqrt(n)))
+    ncols_inside_mosaic = int(nrows_inside_mosaic)
 
+    if nrows_inside_mosaic ** 2 < n:
+        ncols_inside_mosaic += 1
 
+    for i, feature_map in enumerate(activations):
+        mosaic = make_mosaic(feature_map[:n], nrows_inside_mosaic, ncols_inside_mosaic, border=1)
 
+        ax = fig.add_subplot(nrows, ncols, i + 1)
+
+        im = ax.imshow(mosaic, **kwargs)
+        ax.set_title("Feature map #{} \nof layer#{} \ncalled '{}' \nof type {} ".format(i, layer_id,
+                                                                                        layer.name,
+                                                                                        layer.__class__.__name__))
+
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.1)
+        plt.colorbar(im, cax=cax)
+
+    fig.tight_layout()
+    return fig
 
 
 # initalize stuff
-sTypeVis = 'weights' # deep: lukas implementation, else: weights of first layer
+sTypeVis = 'keras_weight' # deep: lukas implementation, else: weights of first layer
 lShow = False
 
 # parse parameters
-with open('config' + os.sep + 'param.yml', 'r') as ymlfile:
+
+folderPath = os.path.dirname(os.path.split(os.path.abspath(__file__))[0])
+cfgPath= os.path.dirname(os.path.dirname(__file__))
+cfgPath= os.path.join(cfgPath,'config','param.yml')
+
+with open(cfgPath, 'r') as ymlfile:
     cfg = yaml.safe_load(ymlfile)
 
-lTrain = cfg['lTrain']  # training or prediction
-lSave = cfg['lSave']  # save intermediate test, training sets
-# initiate info objects
-# default database: MRPhysics with ['newProtocol','dicom_sorted']
-dbinfo = DatabaseInfo(cfg['MRdatabase'], cfg['subdirs'])
 
-# load/create input data
+# default database: MRPhysics with ['newProtocol','dicom_sorted']
+dbinfo = DatabaseInfo(cfg['MRdatabase'],cfg['subdirs'],folderPath)
+
 patchSize = cfg['patchSize']
-if cfg['sSplitting'] == 'normal':
-    sFSname = 'normal'
-elif cfg['sSplitting'] == 'crossvalidation_data':
-    sFSname = 'crossVal_data'
-elif cfg['sSplitting'] == 'crossvalidation_patient':
-    sFSname = 'crossVal'
 
 sOutsubdir = cfg['subdirs'][2]
-sOutPath = cfg['selectedDatabase']['pathout'] + os.sep + ''.join(map(str, patchSize)).replace(" ",
-                                                                                              "") + os.sep + sOutsubdir  # + str(ind_split) + '_' + str(patchSize[0]) + str(patchSize[1]) + '.h5'
-sDatafile = sOutPath + os.sep + sFSname + ''.join(map(str, patchSize)).replace(" ", "") + '.h5'
-
-##############
-## training ##
-##############
-if lTrain:
-    # check if file is already existing -> skip patching
-    if glob.glob(sOutPath + os.sep + sFSname + ''.join(map(str, patchSize)).replace(" ",
-                                                                                    "") + '*_input.mat'):  # deprecated
-        sDatafile = sOutPath + os.sep + sFSname + ''.join(map(str, patchSize)).replace(" ", "") + '_input.mat'
-        try:
-            conten = sio.loadmat(sDatafile)
-        except:
-            f = h5py.File(sDatafile, 'r')
-            conten = {}
-            conten['X_train'] = np.transpose(np.array(f['X_train']), (3, 2, 0, 1))
-            conten['X_test'] = np.transpose(np.array(f['X_test']), (3, 2, 0, 1))
-            conten['y_train'] = np.transpose(np.array(f['y_train']))
-            conten['y_test'] = np.transpose(np.array(f['y_test']))
-            conten['patchSize'] = np.transpose(np.array(f['patchSize']))
-
-        X_train = conten['X_train']
-        X_test = conten['X_test']
-        y_train = conten['y_train']
-        y_test = conten['y_test']
-
-    elif glob.glob(sDatafile):
-        with h5py.File(sDatafile, 'r') as hf:
-            X_train = hf['X_train'][:]
-            X_test = hf['X_test'][:]
-            y_train = hf['y_train'][:]
-            y_test = hf['y_test'][:]
-            patchSize = hf['patchSize'][:]
-
-    else:  # perform patching
-        dAllPatches = np.zeros((0, patchSize[0], patchSize[1]))
-        dAllLabels = np.zeros(0)
-        dAllPats = np.zeros((0, 1))
-        lDatasets = cfg['selectedDatabase']['dataref'] + cfg['selectedDatabase']['dataart']
-        iLabels = cfg['selectedDatabase']['labelref'] + cfg['selectedDatabase']['labelart']
-        for ipat, pat in enumerate(dbinfo.lPats[:-1]):
-            if os.path.exists(dbinfo.sPathIn + os.sep + pat + os.sep + dbinfo.sSubDirs[1]):
-                for iseq, seq in enumerate(lDatasets):
-                    # patches and labels of reference/artifact
-                    tmpPatches, tmpLabels = datapre.fPreprocessData(
-                        os.path.join(dbinfo.sPathIn, pat, dbinfo.sSubDirs[1], seq), cfg['patchSize'],
-                        cfg['patchOverlap'], 1, cfg['sLabeling'])
-                    dAllPatches = np.concatenate((dAllPatches, tmpPatches), axis=0)
-                    dAllLabels = np.concatenate((dAllLabels, iLabels[iseq] * tmpLabels), axis=0)
-                    dAllPats = np.concatenate((dAllPats, ipat * np.ones((tmpLabels.shape[0], 1), dtype=np.int)), axis=0)
-            else:
-                pass
-
-        # perform splitting
-        X_train, y_train, X_test, y_test = ttsplit.fSplitDataset(dAllPatches, dAllLabels, dAllPats, cfg['sSplitting'],
-                                                                 patchSize, cfg['patchOverlap'], cfg['dSplitval'], '')
-
-        # save to file (deprecated)
-        if lSave:
-            # sio.savemat(sOutPath + os.sep + sFSname + str(patchSize[0]) + str(patchSize[1]) + '_input.mat', {'X_train': X_train, 'y_train': y_train, 'X_test': X_test, 'y_test': y_test, 'patchSize': cfg['patchSize']})
-            with h5py.File(sDatafile, 'w') as hf:
-                hf.create_dataset('X_train', data=X_train)
-                hf.create_dataset('X_test', data=X_test)
-                hf.create_dataset('y_train', data=y_train)
-                hf.create_dataset('y_test', data=y_test)
-                hf.create_dataset('patchSize', data=patchSize)
-                hf.create_dataset('patchOverlap', data=cfg['patchOverlap'])
-
-    # perform training
-    for iFold in range(0, len(X_train)):
-        cnn_main.fRunCNN(
-            {'X_train': X_train[iFold], 'y_train': y_train[iFold], 'X_test': X_test[iFold], 'y_test': y_test[iFold],
-             'patchSize': patchSize}, cfg['network'], lTrain, cfg['sOpti'], sOutPath, cfg['batchSize'], cfg['lr'],
-            cfg['epochs'])
-
-else:
-    ################
-    ## prediction ##
-    ################
-    X_test = np.zeros((0, patchSize[0], patchSize[1]))
-    y_test = np.zeros(0)
-    for iImg in range(0, len(cfg['lPredictImg'])):
-        # patches and labels of reference/artifact
-        tmpPatches, tmpLabels = datapre.fPreprocessData(cfg['lPredictImg'][iImg], cfg['patchSize'], cfg['patchOverlap'],
-                                                        1, cfg['sLabeling'])
-        X_test = np.concatenate((X_test, tmpPatches), axis=0)
-        y_test = np.concatenate((y_test, cfg['lLabelPredictImg'][iImg] * tmpLabels), axis=0)
-
-    sNetworktype = cfg['network'].split("_")
-
-    model = cnn_main.fRunCNN({'X_train': [], 'y_train': [], 'X_test': X_test, 'y_test': y_test, 'patchSize': patchSize,
-                      'model_name': cfg['selectedDatabase']['bestmodel'][sNetworktype[2]]}, cfg['network'], lTrain,
-                     cfg['sOpti'], sOutPath, cfg['batchSize'], cfg['lr'], cfg['epochs'])
+sOutPath = cfg['selectedDatabase']['pathout'] + os.sep + ''.join(map(str,patchSize)).replace(" ", "") + os.sep + sOutsubdir
+sNetworktype = cfg['network'].split("_")
+model_name = cfg['selectedDatabase']['bestmodel'][sNetworktype[2]]
 
 
+model_path = sOutPath + model_name + '_model.h5'
+model = load_model(model_path)
+# model = load_model('/no_backup/d1240/CNNArt/results/4040/testout4040_lr_0.001_bs_128_model.h5')
+
+plot_model(model, to_file='model.png', show_layer_names=True,rankdir='TB')
 
 if sTypeVis == 'deep':
 
@@ -232,30 +170,16 @@ if sTypeVis == 'deep':
     #sio.savemat(sDataTest + os.sep + 'visualize_out.mat', {'result': resultAll})
 
 elif sTypeVis == 'keras_weight':
-    dataTrain = sio.loadmat(sDataTrain)
-    X_train = dataTrain['X_train']
-    y_train = dataTrain['y_train']
-    ##########
-    ##  not working
-    ###########
-    #convout1 = model.layers[1].output
-    from random import randint
+    X_test = np.zeros((0, patchSize[0], patchSize[1]))
+    y_test = np.zeros(0)
+    for iImg in range(0, len(cfg['lPredictImg'])):
+        # patches and labels of reference/artifact
+        tmpPatches, tmpLabels = datapre.fPreprocessData(cfg['lPredictImg'][iImg], cfg['patchSize'], cfg['patchOverlap'],
+                                                        1, cfg['sLabeling'])
+        X_test = np.concatenate((X_test, tmpPatches), axis=0)
+        y_test = np.concatenate((y_test, cfg['lLabelPredictImg'][iImg] * tmpLabels), axis=0)
 
-    img_to_visualize = randint(0, len(y_train) - 1)
-
-    # Generate function to visualize first layer
-    convout1_f = theano.function([model.get_input(train=False)], model.layers[1].get_output(train=False))
-    convolutions = convout1_f(X_train[img_to_visualize: img_to_visualize + 1,:,:,:])
-
-   #matplotlib inline
-    # The non-magical version of the previous line is this:
-    # get_ipython().magic(u'matplotlib inline')
-    imshow = plt.imshow  # alias
-    #plt.title("Image used: #%d (digit=%d)" % (img_to_visualize, y_train[img_to_visualize]))
-    #imshow(X_train[img_to_visualize])
-
-    plt.title("First convolution:")
-    imshow(convolutions[0][0])
+    _ = plot_feature_map(model, 0, X_test[:6], n=2)
 
 elif sTypeVis == 'weights':
     #visualize weight vectors
@@ -271,19 +195,11 @@ elif sTypeVis == 'weights':
         if w.ndim == 4:
             layers_to_show.append((i, layer))
 
-    saveWeight = '/no_backup/d1240/CNNArt/ttttttt.mat'
-    Weights =[]
-    for l in len(layers_to_show):
-        Weights.append()
-
 
     for i, (layer_id, layer) in enumerate(layers_to_show):
         w = layer.weights[0].container.data
         w = np.transpose(w, (3, 2, 0, 1))
 
-
-
-        sio.savemat(saveWeight, {'w'+str(i): w})
 
         # n define the maximum number of weights to display
         n = w.shape[0]
