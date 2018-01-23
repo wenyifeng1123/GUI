@@ -11,15 +11,25 @@ spacing = 1.2
 
 figheight = (spacing * n + .5)
 fig1 = plt.figure(1, (4 / 1.5, figheight / 1.5))
+fig1.show()
 fontsize = 0.3 * 72
+layerLength = len(model.layers)
+
+
 
 
 
 for i, layer in enumerate(model.layers):
-    fig1.text(0.5, (spacing * (n - i) - 0.5) / figheight, layer.name,
+    ax = fig1.add_subplot(layerLength,1,i+1)
+    ax.text(0.5, (spacing * (n - i) - 0.5) / figheight, layer.name,
               ha="center",
               size=fontsize,
               transform=fig1.transFigure,
               bbox=dict(boxstyle='round', fc="w", ec="k"))
+    if i == layerLength-1:
+        pass
+    else:
+        ax.annotate('',xy=(0.5,0),xytext=(0.5,1),arrowprops=dict(facecolor='black',shrink=0.05))
+
 
 plt.show()
