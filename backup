@@ -6,14 +6,15 @@ import matplotlib.patches as mpatch
 from matplotlib.patches import FancyBboxPatch
 
 model = load_model('testout4040_lr_0.001_bs_128_model.h5')
-n=10
+layerLength = len(model.layers)
 spacing = 1.2
 
-figheight = (spacing * n + .5)
+figheight = (spacing * layerLength + .5)
 fig1 = plt.figure(1, (4 / 1.5, figheight / 1.5))
 fig1.show()
 fontsize = 0.3 * 72
-layerLength = len(model.layers)
+
+
 
 
 
@@ -21,7 +22,7 @@ layerLength = len(model.layers)
 
 for i, layer in enumerate(model.layers):
     ax = fig1.add_subplot(layerLength,1,i+1)
-    ax.text(0.5, (spacing * (n - i) - 0.5) / figheight, layer.name,
+    ax.text(0.5, (spacing * (layerLength - i) - 0.5) / figheight, layer.name,
               ha="center",
               size=fontsize,
               transform=fig1.transFigure,
