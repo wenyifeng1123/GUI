@@ -1,9 +1,11 @@
+from keras.utils import plot_model
+from keras.models import load_model
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 import matplotlib.patches as mpatch
 from matplotlib.patches import FancyBboxPatch
 
-
+model = load_model('testout4040_lr_0.001_bs_128_model.h5')
 n=10
 spacing = 1.2
 
@@ -11,8 +13,10 @@ figheight = (spacing * n + .5)
 fig1 = plt.figure(1, (4 / 1.5, figheight / 1.5))
 fontsize = 0.3 * 72
 
-for i in range(n):
-    fig1.text(0.5, (spacing * (n - i) - 0.5) / figheight, 'aaa',
+
+
+for i, layer in enumerate(model.layers):
+    fig1.text(0.5, (spacing * (n - i) - 0.5) / figheight, layer.name,
               ha="center",
               size=fontsize,
               transform=fig1.transFigure,
