@@ -1,0 +1,37 @@
+from keras.utils import plot_model
+from keras.models import load_model
+import matplotlib.pyplot as plt
+import matplotlib.transforms as mtransforms
+import matplotlib.patches as mpatch
+from matplotlib.patches import FancyBboxPatch
+
+model = load_model('testout4040_lr_0.001_bs_128_model.h5')
+layerLength = len(model.layers)
+spacing = 1.2
+
+figheight = (spacing * layerLength + .5)
+fig1 = plt.figure(1, (4 / 1.5, figheight / 1.5))
+fig1.show()
+fontsize = 0.3 * 72
+axNumber = layerLength*2-1
+layerName=[]
+
+for i, layer in enumerate(model.layers):
+    layerName.append(layer.name)
+
+for i in range(axNumber):
+    ax = fig1.add_subplot(axNumber,1,i+1)
+    if i%2==0:
+        bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
+        ax.text(0.5, 0.5, layerName[int(i/2)], ha="center", va="center", size=20,
+                bbox=bbox_props)
+    elif i!=axNumber-1:
+        ax.annotate('', xy=(0.5,0), xytext=(0.5,1),
+                    arrowprops=dict(facecolor='black', shrink=0.05))
+    else:
+        pass
+
+    ax.set_axis_off()
+
+
+plt.show()
