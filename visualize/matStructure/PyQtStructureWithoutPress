@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+
+#reference to https://github.com/cxinping/PyQt5/blob/master/Chapter09/MatplotlibWidget.py
+
+
 import sys
 import random
 import matplotlib
