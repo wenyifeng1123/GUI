@@ -1,0 +1,21 @@
+import matplotlib.pyplot as plt
+import matplotlib.transforms as mtransforms
+import matplotlib.patches as mpatch
+from matplotlib.patches import FancyBboxPatch
+
+
+n=10
+spacing = 1.2
+
+figheight = (spacing * n + .5)
+fig1 = plt.figure(1, (4 / 1.5, figheight / 1.5))
+fontsize = 0.3 * 72
+
+for i in range(n):
+    fig1.text(0.5, (spacing * (n - i) - 0.5) / figheight, 'aaa',
+              ha="center",
+              size=fontsize,
+              transform=fig1.transFigure,
+              bbox=dict(boxstyle='round', fc="w", ec="k"))
+
+plt.show()
