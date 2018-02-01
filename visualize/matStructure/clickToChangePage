@@ -1,0 +1,16 @@
+import h5py
+import matplotlib.pyplot as plt
+
+with h5py.File('/no_backup/d1240/CNNArt/results/4040/testout/crossVal4040.h5', 'r') as hf:
+	train_ref = hf['X_train'][0, :]
+
+nPatch = train_ref.shape[0]
+
+for i in range(nPatch // 6):
+	fig, axes = plt.subplots(nrows=5, ncols=1)
+	plt.gray()
+
+	for j in range(5):
+		axes[j].imshow(train_ref[6 * i + j])
+
+	plt.show()
