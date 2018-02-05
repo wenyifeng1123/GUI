@@ -27,3 +27,6 @@ for i,layer in enumerate(model.layers):
 
 #h.visit(pn)
 print(h['layers/0/conv2d_1/weights'].shape)
+
+# very importent to close it !!!!!or the next time maybe cannot open it!!!!!!!!!!!!
+h.close()
