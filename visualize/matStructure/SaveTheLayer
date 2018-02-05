@@ -1,0 +1,29 @@
+import h5py
+import matplotlib.pyplot as plt
+from keras.models import load_model
+import numpy as np
+
+#h=h5py.File('testout4040_lr_0.001_bs_128_model.h5','r')
+model = load_model('testout4040_lr_0.001_bs_128_model.h5')
+
+def pn(name):
+    print name
+
+
+h=h5py.File('layer.h5','w')
+layers=h.create_group('layers')
+
+for i,layer in enumerate(model.layers):
+    i=layers.create_group(str(i))
+    layer.name=i.create_group(layer.name)
+
+    if len(layer.weights) == 0:
+        weights=layer.name.create_dataset('weights',data=0)
+        continue
+
+    weights=layer.name.create_dataset('weights',data=layer.weights[0].container.data)
+
+
+
+#h.visit(pn)
+print(h['layers/0/conv2d_1/weights'].shape)
