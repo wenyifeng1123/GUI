@@ -27,7 +27,7 @@ def on_click(event):
         # Occurs when a region not in an axis is clicked...
         return
     if event.button is 1:
-        # On left click, zoom the selected axes
+
         ax._orig_position = ax.get_position()
         ax.set_position([0.1, 0.1, 0.85, 0.85])
         for axis in event.canvas.figure.axes:
@@ -100,29 +100,25 @@ class MyMplCanvas(FigureCanvas):
     def start_static_plot(self):
 
         model = h5py.File('layer.h5', 'r')
-        layers = []
-        layersWeights = []
+        layersName = []
+        layersWeights = {}
 
         for i in model['layers']:
             layerIndex = 'layers' + '/' + i
 
             for n in model[layerIndex]:
                 layerName = layerIndex + '/' + n
-                index_layer = {}
-                index_layer[i] = n
-                layers.append(index_layer)
+                layersName.append(n)
 
                 for w in model[layerName]:
                     weightsPath = layerName + '/' + w
-                    layer_weights = {}
-                    layer_weights[n] = model[weightsPath]
-                    layersWeights.append(layer_weights)
 
-        layerLength = len(layers)
+                    layersWeights[n] = model[weightsPath]
+                    # layersWeights.append(weights)
+
+        layerLength = len(layersName)
+        spacing = 1.2
         axNumber = layerLength * 2 - 1
-
-
-
 
         for i in range(axNumber):
 
@@ -130,7 +126,7 @@ class MyMplCanvas(FigureCanvas):
 
             if i % 2 == 0:
                 bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
-                self.axes.text(0.5, 0.5, layers[int(i / 2)][str(int(i / 2))], ha="center", va="center", size=20,
+                self.axes.text(0.5, 0.5, layersName[int(i / 2)], ha="center", va="center", size=20,
                           bbox=bbox_props)
             elif i != axNumber - 1:
                 self.axes.annotate('', xy=(0.5, 0), xytext=(0.5, 1),
@@ -141,6 +137,7 @@ class MyMplCanvas(FigureCanvas):
             self.axes.set_axis_off()
 
         self.fig.canvas.mpl_connect('button_press_event', on_click)
+
 
 
 
