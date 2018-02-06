@@ -2,21 +2,24 @@ import h5py
 
 model=h5py.File('layer.h5','r')
 
-layers={}
+layersName=[]
 layersWeights={}
-#print(model['layers/0/conv2d_1/weights'].shape)
+
 
 for i in model['layers']:
     layerIndex='layers'+'/'+i
+
     for n in model[layerIndex]:
         layerName=layerIndex+'/'+n
-        layers[i]=n
+        layersName.append(n)
+
         for w in model[layerName]:
             weightsPath=layerName+'/'+w
+
             layersWeights[n]=model[weightsPath]
+            #layersWeights.append(weights)
 
 
-import operator
-layers=sorted(layers.items(),key=operator.itemgetter(0))
-print(layers)
-print(layersWeights)
+#print(layersName)
+print(layersWeights[layersName[0]].value)
+#print(layersWeights)
