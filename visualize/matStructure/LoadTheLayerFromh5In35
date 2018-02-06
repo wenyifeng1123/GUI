@@ -1,0 +1,22 @@
+import h5py
+
+model=h5py.File('layer.h5','r')
+
+layers={}
+layersWeights={}
+#print(model['layers/0/conv2d_1/weights'].shape)
+
+for i in model['layers']:
+    layerIndex='layers'+'/'+i
+    for n in model[layerIndex]:
+        layerName=layerIndex+'/'+n
+        layers[i]=n
+        for w in model[layerName]:
+            weightsPath=layerName+'/'+w
+            layersWeights[n]=model[weightsPath]
+
+
+import operator
+layers=sorted(layers.items(),key=operator.itemgetter(0))
+print(layers)
+print(layersWeights)
