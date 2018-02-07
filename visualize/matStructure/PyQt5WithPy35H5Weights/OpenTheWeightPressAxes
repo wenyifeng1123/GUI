@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import h5py
 from network_visualization import plot_mosaic
 
-def on_click(event):
+def on_click_axes(event):
     """Enlarge or restore the selected axis."""
     ax = event.inaxes
     if ax is None:
@@ -85,5 +85,5 @@ for i in range(axNumber):
     axes.set_axis_off()
 
 
-fig.canvas.mpl_connect('button_press_event', on_click)
+fig.canvas.mpl_connect('button_press_event', on_click_axes)
 plt.show()
