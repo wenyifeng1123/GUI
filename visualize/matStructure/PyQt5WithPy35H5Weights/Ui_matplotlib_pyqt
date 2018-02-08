@@ -11,11 +11,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1000, 800)
+        MainWindow.resize(1400, 1000)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.matplotlibwidget_static = MatplotlibWidget(self.centralwidget)
-        self.matplotlibwidget_static.setGeometry(QtCore.QRect(139, 20, 400, 700))
+        self.matplotlibwidget_static.setGeometry(QtCore.QRect(139, 20, 700, 700))
         self.matplotlibwidget_static.setObjectName("matplotlibwidget_static")
         self.pushButton = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton.setGeometry(QtCore.QRect(40, 120, 75, 23))
