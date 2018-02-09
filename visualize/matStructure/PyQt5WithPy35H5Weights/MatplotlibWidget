@@ -16,7 +16,7 @@ from network_visualization import plot_mosaic
 import matplotlib.transforms as mtransforms
 import matplotlib.patches as mpatch
 from matplotlib.patches import FancyBboxPatch
-from Ui_matplotlib_pyqt import Ui_MainWindow
+from Ui_matplotlib_pyqt2 import Ui_MainWindow
 import h5py
 import numpy as np
 
@@ -39,17 +39,20 @@ def layers():
 
     return layersName,layersWeights
 
-
 def on_click_axes(event):
     """Enlarge or restore the selected axis."""
     ax = event.inaxes
-    layersName, layersWeights=layers()
+    layersName, layersWeights = layers()
     if ax is None:
         # Occurs when a region not in an axis is clicked...
         return
     if event.button is 1:
-        f=plt.figure()
-        w=layersWeights[ax.name].value
+        #event.canvas.matplotlibwidget_static_2.setVisible(True)
+        f = plt.figure()
+        if ax.name=='arrow':
+            return
+
+        w = layersWeights[ax.name].value
         if w.ndim == 4:
             w = np.transpose(w, (3, 2, 0, 1))
             mosaic_number = w.shape[0]
@@ -59,17 +62,16 @@ def on_click_axes(event):
             if nrows ** 2 < mosaic_number:
                 ncols += 1
 
-            f=plot_mosaic(w[:mosaic_number, 0], nrows, ncols,f)
+            f = plot_mosaic(w[:mosaic_number, 0], nrows, ncols, f)
             plt.suptitle("Weights of Layer '{}'".format(ax.name))
             f.show()
         else:
             pass
-
-
     else:
         # No need to re-draw the canvas if it's not a left or right click
         return
     event.canvas.draw()
+
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     """
@@ -86,6 +88,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         self.matplotlibwidget_static.setVisible(False)
+        self.matplotlibwidget_static_2.setVisible(False)
 
     @pyqtSlot()
     def on_pushButton_clicked(self):
@@ -94,6 +97,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """
 
         self.matplotlibwidget_static.setVisible(True)
+        #self.matplotlibwidget_static_2.setVisible(True)
         self.matplotlibwidget_static.mpl.start_static_plot()
 
 
@@ -128,15 +132,6 @@ class MyMplCanvas(FigureCanvas):
         axNumber = layerLength * 2 - 1
 
 
-        '''
-        for i in layersName:
-            print(i)
-            if layersWeights[i].ndim == 4:
-                if layersWeights[i].shape[0] == layersWeights[i].shape[1]:
-                    if layersWeights[i].shape[3] > mosaic_number:
-                        mosaic_number = layersWeights[i].shape[3]
-        '''
-
         for i in range(axNumber):
 
             self.axes = self.fig.add_subplot(axNumber, 1, i + 1)  # 建立一个子图，如果要建立复合图，可以在这里修改
@@ -149,12 +144,11 @@ class MyMplCanvas(FigureCanvas):
             elif i != axNumber - 1:
                 self.axes.annotate('', xy=(0.5, 0), xytext=(0.5, 1),
                               arrowprops=dict(facecolor='black', shrink=0.05))
+                self.axes.name='arrow'
             else:
                 pass
 
             self.axes.set_axis_off()
-
-
 
         self.fig.canvas.mpl_connect('button_press_event', on_click_axes)
 
