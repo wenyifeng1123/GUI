@@ -16,9 +16,10 @@ from network_visualization import plot_mosaic
 import matplotlib.transforms as mtransforms
 import matplotlib.patches as mpatch
 from matplotlib.patches import FancyBboxPatch
-from Ui_matplotlib_pyqt2 import Ui_MainWindow
+from Ui_matplotlib_pyqt import Ui_MainWindow
 import h5py
 import numpy as np
+
 
 def layers():
     model = h5py.File('layer.h5', 'r')
@@ -41,6 +42,7 @@ def layers():
 
 def on_click_axes(event):
     """Enlarge or restore the selected axis."""
+
     ax = event.inaxes
     layersName, layersWeights = layers()
     if ax is None:
@@ -87,19 +89,31 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
 
+
+
         self.matplotlibwidget_static.setVisible(False)
         self.matplotlibwidget_static_2.setVisible(False)
+        self.pushButton_3.hide()
+        self.pushButton_4.hide()
 
+   
     @pyqtSlot()
     def on_pushButton_clicked(self):
         """
         Slot documentation goes here.
         """
 
-        self.matplotlibwidget_static.setVisible(True)
-        #self.matplotlibwidget_static_2.setVisible(True)
+        # self.matplotlibwidget_static.show()
+        # self.matplotlibwidget_static_2.hide()
+        # self.pushButton_3.hide()
+        # self.pushButton_4.hide()
         self.matplotlibwidget_static.mpl.start_static_plot()
 
+    # def on_pushButton_2_clicled(self):
+    #     self.matplotlibwidget_static.hide()
+    #     self.matplotlibwidget_static_2.show()
+    #     self.pushButton_3.show()
+    #     self.pushButton_4.show()
 
 
 class MyMplCanvas(FigureCanvas):
@@ -150,7 +164,7 @@ class MyMplCanvas(FigureCanvas):
 
             self.axes.set_axis_off()
 
-        self.fig.canvas.mpl_connect('button_press_event', on_click_axes)
+        self.fig.canvas.mpl_connect('button_press_event',on_click_axes)
 
 
 
