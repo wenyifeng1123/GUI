@@ -1,0 +1,25 @@
+import h5py
+
+model = h5py.File('2more-weights.h5', 'r')
+
+for i in model['conv2d_1']:
+    layerIndex = 'conv2d_1' + '/' + i
+
+    for n in model[layerIndex]:
+        layerName = layerIndex + '/' + n
+        print(layerName)
+        '''
+        conv2d_1/conv2d_1/bias
+        conv2d_1/conv2d_1/kernel
+        '''
+
+for i in model['conv2d_1/conv2d_1/kernel']:
+    print(i.shape)
+    '''
+    (3, 1, 32)
+    (3, 1, 32)
+    (3, 1, 32)
+    '''
+
+
+print(model.keys())
