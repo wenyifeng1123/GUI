@@ -1,0 +1,26 @@
+# -*- coding: utf-8 -*-
+"""
+@author: GM
+"""
+from keras.layers import Dense
+from keras.models import Sequential
+from keras.utils.vis_utils import plot_model
+from keras import layers
+
+#第一个模型
+first_model = Sequential()
+first_model.add(Dense(3,input_dim=5))
+first_model.add(Dense(4))
+
+#第二个模型
+second_model = Sequential()
+second_model.add(Dense(1,input_dim=2))
+second_model.add(Dense(4))
+
+model = Sequential()
+#concat_axis有四种合并方式:-2,-1,0,1
+model.add(layers.Merge([first_model,second_model],mode='concat',concat_axis=1))
+model.add(Dense(2))
+model.summary()
+
+plot_model(model)
