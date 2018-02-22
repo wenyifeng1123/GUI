@@ -4,8 +4,9 @@
 """
 from keras.layers import Dense
 from keras.models import Sequential
-from keras.utils.vis_utils import plot_model
+from keras.utils.vis_utils import plot_model,model_to_dot
 from keras import layers
+
 
 #第一个模型
 first_model = Sequential()
@@ -24,3 +25,18 @@ model.add(Dense(2))
 model.summary()
 
 plot_model(model)
+
+dot=model_to_dot(model,
+                 show_shapes=False,
+                 show_layer_names=True,
+                 rankdir='TB')
+
+node=dot.obj_dict['nodes']
+edge=dot.obj_dict['edges']
+
+
+inputLayers=[]
+#for i in model.inputs:
+    #inputLayers.append(i.name[:-2])
+
+
