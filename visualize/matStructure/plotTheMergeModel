@@ -6,37 +6,135 @@ from keras.layers import Dense
 from keras.models import Sequential
 from keras.utils.vis_utils import plot_model,model_to_dot
 from keras import layers
+import matplotlib
+import matplotlib.pyplot as plt
+
+
+
 
 
 #第一个模型
 first_model = Sequential()
 first_model.add(Dense(3,input_dim=5))
 first_model.add(Dense(4))
-
 #第二个模型
 second_model = Sequential()
 second_model.add(Dense(1,input_dim=2))
 second_model.add(Dense(4))
-
 model = Sequential()
 #concat_axis有四种合并方式:-2,-1,0,1
 model.add(layers.Merge([first_model,second_model],mode='concat',concat_axis=1))
 model.add(Dense(2))
 model.summary()
 
-plot_model(model)
 
-dot=model_to_dot(model,
-                 show_shapes=False,
-                 show_layer_names=True,
-                 rankdir='TB')
-
-node=dot.obj_dict['nodes']
-edge=dot.obj_dict['edges']
+#plot_model(model)
+dot=model_to_dot(model,show_shapes=False,show_layer_names=True,rankdir='TB')
+#node=dot.obj_dict['nodes']
+#edge=dot.obj_dict['edges']
 
 
-inputLayers=[]
-#for i in model.inputs:
-    #inputLayers.append(i.name[:-2])
+layers_by_depth=model.model.layers_by_depth
+layerLength = len(layers_by_depth)
+axNumber=2*layerLength-1
+
+col=0
+for i in layers_by_depth:
+    if int(len(layers_by_depth[i]))>col:
+        col=int(len(layers_by_depth[i]))
 
 
+fig=plt.figure()
+fig.show()
+i=axNumber-1 #8
+j=0
+row=0
+name={}
+layerNumber=0
+
+
+
+while(i>=0):
+    #layerNumber=len(layers_by_depth[j])
+    for m,n in enumerate(layers_by_depth[j]):
+        if i!=0:
+            o = (i-1) * col + m + 1
+        else:
+            o=i*col+m + 1
+        axes = fig.add_subplot(i, col, o)
+        bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
+        axes.text(0.5, 0.5, n.name, ha="center", va="center", size=20,
+                  bbox=bbox_props)
+        axes.name = n.name
+        axes.set_axis_off()
+
+
+        if hasattr(n.input,'len'):
+            for input_index in n.input:
+                input_layer_name=n.input[input_index].name
+                input_layer_name=input_layer_name.split('/')[0]
+                name[input_layer_name]=n.name
+
+        else:
+            input_layer_name = n.input.name
+            input_layer_name = input_layer_name.split('/')[0]
+            name[input_layer_name] = n.name
+
+            if i!=0:
+                o = (i - 2) * col + m + 1
+                axes = fig.add_subplot(i, col, o)
+                axes.annotate('', xy=(0.5, 0), xytext=(0.5, 1),
+                                   arrowprops=dict(facecolor='black', shrink=0.05))
+                axes.name = 'arrow'
+                axes.set_axis_off()
+            else:
+                pass
+
+
+    i-=1
+
+    j+=1
+
+
+
+
+
+
+
+
+
+
+
+'''
+while (j >= 0):
+    col=len(layers_by_depth[j])
+    #axes = fig.add_subplot(col, 1, i + 1)  # 建立一个子图，如果要建立复合图，可以在这里修改
+    for i in layers_by_depth[j]:
+        axes = fig.add_subplot(col, 1, i + 1)  # 建立一个子图，如果要建立复合图，可以在这里修改
+        layers_by_depth[j][i].name=
+
+
+
+    bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
+    axes.text(0.5, 0.5, layersName[int(i / 2)], ha="center", va="center", size=20,
+              bbox=bbox_props)
+    axes.name = layersName[int(i / 2)]
+
+
+
+
+
+
+
+        axes.annotate('', xy=(0.5, 0), xytext=(0.5, 1),
+                      arrowprops=dict(facecolor='black', shrink=0.05))
+        axes.name='arrow'
+
+
+    self.axes.set_axis_off()
+
+
+
+
+
+'''
