@@ -46,7 +46,7 @@ for i in layers_by_depth:
 
 fig=plt.figure()
 fig.show()
-i=axNumber-1 #8
+i=axNumber #8
 j=0
 row=0
 name={}
@@ -61,7 +61,7 @@ while(i>=0):
             o = (i-1) * col + m + 1
         else:
             o=i*col+m + 1
-        axes = fig.add_subplot(i, col, o)
+        axes = fig.add_subplot(axNumber, col, o)
         bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
         axes.text(0.5, 0.5, n.name, ha="center", va="center", size=20,
                   bbox=bbox_props)
@@ -69,20 +69,44 @@ while(i>=0):
         axes.set_axis_off()
 
 
-        if hasattr(n.input,'len'):
+        if hasattr(n.input,'__len__'):
+            l=len(n.input)
+            if i!=0:
+                if i==1:
+                    o =  i*col+m + 1
+                else:
+                    o = (i - 2) * col + m + 1
+
+                axes = fig.add_subplot(axNumber, col, o)
+                for x in range(l):
+                    xcord=1/(l+1)*(x+1)
+
+                    axes.annotate('', xy=(xcord, 0), xytext=(xcord, 1),
+                                  arrowprops=dict(facecolor='black', shrink=0.05))
+
+                axes.name = 'arrow'
+                axes.set_axis_off()
+            else:
+                pass
+            '''
             for input_index in n.input:
-                input_layer_name=n.input[input_index].name
+                input_layer_name=input_index.name
                 input_layer_name=input_layer_name.split('/')[0]
                 name[input_layer_name]=n.name
-
+            
+            '''
         else:
             input_layer_name = n.input.name
             input_layer_name = input_layer_name.split('/')[0]
             name[input_layer_name] = n.name
 
             if i!=0:
-                o = (i - 2) * col + m + 1
-                axes = fig.add_subplot(i, col, o)
+                if i==1:
+                    o =  i*col+m + 1
+                else:
+                    o = (i - 2) * col + m + 1
+
+                axes = fig.add_subplot(axNumber, col, o)
                 axes.annotate('', xy=(0.5, 0), xytext=(0.5, 1),
                                    arrowprops=dict(facecolor='black', shrink=0.05))
                 axes.name = 'arrow'
@@ -91,50 +115,11 @@ while(i>=0):
                 pass
 
 
-    i-=1
+    i-=2
 
     j+=1
 
 
 
+plt.show()
 
-
-
-
-
-
-
-
-'''
-while (j >= 0):
-    col=len(layers_by_depth[j])
-    #axes = fig.add_subplot(col, 1, i + 1)  # 建立一个子图，如果要建立复合图，可以在这里修改
-    for i in layers_by_depth[j]:
-        axes = fig.add_subplot(col, 1, i + 1)  # 建立一个子图，如果要建立复合图，可以在这里修改
-        layers_by_depth[j][i].name=
-
-
-
-    bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
-    axes.text(0.5, 0.5, layersName[int(i / 2)], ha="center", va="center", size=20,
-              bbox=bbox_props)
-    axes.name = layersName[int(i / 2)]
-
-
-
-
-
-
-
-        axes.annotate('', xy=(0.5, 0), xytext=(0.5, 1),
-                      arrowprops=dict(facecolor='black', shrink=0.05))
-        axes.name='arrow'
-
-
-    self.axes.set_axis_off()
-
-
-
-
-
-'''
