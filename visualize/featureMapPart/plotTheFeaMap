@@ -1,0 +1,42 @@
+import h5py
+from keras.models import load_model
+from keras.utils import plot_model
+import theano
+import theano.tensor as T
+import os
+import os.path
+import sys
+import numpy as np
+import scipy.io as sio
+import matplotlib.pyplot as plt
+import glob
+import yaml
+import h5py
+from DatabaseInfo import DatabaseInfo
+import utils.DataPreprocessing as datapre
+from keras.models import load_model
+from network_visualization import make_mosaic,plot_feature_map,plot_all_feature_maps,get_weights_mosaic,plot_weights,plot_all_weights,on_click
+from keras.utils import plot_model
+import keras.optimizers
+from keras.callbacks import EarlyStopping, ModelCheckpoint,ReduceLROnPlateau
+
+
+batchSize=128
+model=load_model('/no_backup/d1240/testout8080/testout8080_lr_0.0001_bs_128_model.h5')
+plot_model(model,'mm.png',show_shapes='true')
+weight_name = '/no_backup/d1240/testout8080/testout8080_lr_0.0001_bs_128_weights.h5'
+
+
+with h5py.File('/no_backup/d1240/testout8080/normal8080.h5','r') as hf:
+    X_test = hf['X_test'][:]
+    y_test = hf['y_test'][:]
+
+#X_test = np.expand_dims(X_test, axis=1)
+y_test = np.asarray([y_test[:], np.abs(np.asarray(y_test[:], dtype=np.float32) - 1)]).T
+y_test = np.squeeze(y_test, axis=1)
+X_test =np.transpose(np.array(X_test), (1,0,2,3))
+score_test, acc_test = model.evaluate(X_test, y_test, batch_size=128)
+prob_pre = model.predict(X_test, batchSize, 1)
+
+_ = plot_feature_map(model, 03, X_test[10:12], n=2)
+plt.show()
