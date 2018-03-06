@@ -73,19 +73,6 @@
      </property>
     </widget>
    </widget>
-   <widget class="QSlider" name="horizontalSlider">
-    <property name="geometry">
-     <rect>
-      <x>230</x>
-      <y>490</y>
-      <width>160</width>
-      <height>22</height>
-     </rect>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -142,22 +129,6 @@
    </hints>
   </connection>
   <connection>
-   <sender>pushButton</sender>
-   <signal>clicked()</signal>
-   <receiver>horizontalSlider</receiver>
-   <slot>hide()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>115</x>
-     <y>100</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>269</x>
-     <y>524</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>pushButton_2</sender>
    <signal>clicked()</signal>
    <receiver>matplotlibwidget_static</receiver>
@@ -186,22 +157,6 @@
     <hint type="destinationlabel">
      <x>259</x>
      <y>175</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pushButton_2</sender>
-   <signal>clicked()</signal>
-   <receiver>horizontalSlider</receiver>
-   <slot>show()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>42</x>
-     <y>207</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>295</x>
-     <y>520</y>
     </hint>
    </hints>
   </connection>

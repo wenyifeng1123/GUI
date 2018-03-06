@@ -33,69 +33,78 @@ from keras.models import Sequential, load_model
 from keras.utils.vis_utils import plot_model, model_to_dot
 
 
+def getLayersWeights():
+    model = h5py.File('layer.h5', 'r')
+    layersName = []
+    layersWeights = {}
+
+    for i in model['layers']:
+        layerIndex = 'layers' + '/' + i
+
+        for n in model[layerIndex]:
+            layerName = layerIndex + '/' + n
+            layersName.append(n)
+
+            weightsPath = layerName + '/' + 'weights'
+            layersWeights[n] = model[weightsPath]
+    #model.close()
+    return layersName,layersWeights
+
 def on_click_axes(event):
     """Enlarge or restore the selected axis."""
-    model=load_model('m.h5')
+
     ax = event.inaxes
+    layersName, layersWeights = getLayersWeights()
     if ax is None:
         # Occurs when a region not in an axis is clicked...
         return
     if event.button is 1:
-
+        #event.canvas.matplotlibwidget_static_2.setVisible(True)
         f = plt.figure()
-        if ax.name == 'arrow':
+        if ax.name=='arrow':
             return
 
-        for l in model.layers:
-            if l.name == ax.name:
-                w = l.weights
+        w = layersWeights[ax.name].value
+        if w.ndim == 4:
+            w = np.transpose(w, (3, 2, 0, 1))
+            mosaic_number = w.shape[0]
+            nrows = int(np.round(np.sqrt(mosaic_number)))
+            ncols = int(nrows)
 
-        if len(w) != 0:
-            if w[0].ndim == 4:
-                w = w[0].container.data
-                w = np.transpose(w, (3, 2, 0, 1))
-                mosaic_number = w.shape[0]
-                nrows = int(np.round(np.sqrt(mosaic_number)))
-                ncols = int(nrows)
+            if nrows ** 2 < mosaic_number:
+                ncols += 1
 
-                if nrows ** 2 < mosaic_number:
-                    ncols += 1
-
-                f = plot_mosaic(w[:mosaic_number, 0], nrows, ncols, f)
-                plt.suptitle("Weights of Layer '{}'".format(ax.name))
-                f.show()
-            else:
-                pass
-
+            f = plot_mosaic(w[:mosaic_number, 0], nrows, ncols, f)
+            plt.suptitle("Weights of Layer '{}'".format(ax.name))
+            f.show()
         else:
-            return
-
+            pass
     else:
         # No need to re-draw the canvas if it's not a left or right click
         return
     event.canvas.draw()
 
 class MainWindow(QMainWindow, Ui_MainWindow):
+    """
+    Class documentation goes here.
+    """
 
     def __init__(self, parent=None):
-
+        """
+        Constructor
+        @param parent reference to the parent widget
+        @type QWidget
+        """
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
 
         self.matplotlibwidget_static.setVisible(False)
         self.matplotlibwidget_static_2.setVisible(False)
         self.pushButton_3.hide()
-        self.horizontalSlider.hide()
-
-        #self.connect(pushButton, QtCore.SIGNAL('clicked()'), self, QtCore.SLOT('close()'))
-
-        #def on_pushButton_clicked(self):
-            #self.matplotlibwidget_static.mpl.start_static_plot()
-        self.pushButton.clicked.connect(self.matplotlibwidget_static.mpl.start_static_plot)
-
-    def coco(self):
-        self.matplotlibwidget_static.mpl.start_static_plot()
-
+        #self.horizontalSlider.hide()
+        # self.pushButton_4.hide()
+        self.pushButton.clicked.connect(self.matplotlibwidget_static.mpl.weights_plot)
+        self.pushButton_2.clicked.connect(self.matplotlibwidget_static_2.mpl.feature_plot)
 
 
 class MyMplCanvas(FigureCanvas):
@@ -119,21 +128,22 @@ class MyMplCanvas(FigureCanvas):
 
     '''绘制静态图，可以在这里定义自己的绘图逻辑'''
 
-    def start_static_plot(self):
-        model=load_model('m.h5')
-        layerLength = len(model.layers)
-        #fig1 = plt.figure()
-        #fig1.show()
+    def weights_plot(self):
+
+        layersName, layersWeights = getLayersWeights()
+        layerLength = len(layersName)
+        spacing = 1.2
         axNumber = layerLength * 2 - 1
 
         for i in range(axNumber):
+
             self.axes = self.fig.add_subplot(axNumber, 1, i + 1)  # 建立一个子图，如果要建立复合图，可以在这里修改
 
             if i % 2 == 0:
                 bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
-                self.axes.text(0.5, 0.5, model.layers[int(i / 2)].name, ha="center", va="center", size=20,
+                self.axes.text(0.5, 0.5, layersName[int(i / 2)], ha="center", va="center", size=20,
                                bbox=bbox_props)
-                self.axes.name = model.layers[int(i / 2)].name
+                self.axes.name = layersName[int(i / 2)]
             elif i != axNumber - 1:
                 self.axes.annotate('', xy=(0.5, 0), xytext=(0.5, 1),
                                    arrowprops=dict(facecolor='black', shrink=0.05))
@@ -144,6 +154,42 @@ class MyMplCanvas(FigureCanvas):
             self.axes.set_axis_off()
 
         self.fig.canvas.mpl_connect('button_press_event', on_click_axes)
+
+    def feature_plot(self):
+
+        layersName, activations = self.getLayersFeatures()
+        for feature_map in layersName:
+            if activations[feature_map].ndim==4:
+                # Compute nrows and ncols for images
+                n_mosaic = len(activations[feature_map])
+                nrows = int(np.round(np.sqrt(n_mosaic)))
+                ncols = int(nrows)
+                if (nrows ** 2) < n_mosaic:
+                    ncols += 1
+
+                plot_mosaic(activations[feature_map], nrows, ncols, self.fig)
+            else:
+                continue
+
+
+
+
+    def getLayersFeatures(self):
+        model = h5py.File('layer.h5', 'r')
+        layersName = []
+        layersFeatures = {}
+
+        for i in model['layers']:
+            layerIndex = 'layers' + '/' + i
+
+            for n in model[layerIndex]:
+                layerName = layerIndex + '/' + n
+                layersName.append(n)
+
+                featurePath = layerName + '/' + 'activation'
+                layersFeatures[n] = model[featurePath]
+        # model.close()
+        return layersName, layersFeatures
 
 
 class MatplotlibWidget(QWidget):
@@ -163,66 +209,6 @@ class MatplotlibWidget(QWidget):
 
 if __name__ == '__main__':
     import sys
-    (X_train, y_train), (X_test, y_test) = mnist.load_data()
-    # Only take a small part of the data to reduce computation time
-    X_train = X_train[:20]
-    y_train = y_train[:20]
-    X_test = X_test[:20]
-    y_test = y_test[:20]
-
-    # Define some variables from the dataset
-    nb_classes = np.unique(y_train).shape[0]
-    img_rows, img_cols = X_train.shape[-2:]
-
-    X_train = X_train.reshape(X_train.shape[0], 1, img_rows, img_cols).astype('float32')
-    X_test = X_test.reshape(X_test.shape[0], 1, img_rows, img_cols).astype('float32')
-
-    X_train /= 255
-    X_test /= 255
-
-    print('X_train shape:', X_train.shape)
-    print('y_train shape:', y_train.shape)
-
-    # Convert class vectors to binary class matrices
-    Y_train = np_utils.to_categorical(y_train, nb_classes)
-    Y_test = np_utils.to_categorical(y_test, nb_classes)
-
-    # Model parameters
-    nb_filters = 32
-    nb_pool = 2
-    kernel_size = (3, 3)
-
-    # Create the model
-    model = Sequential()
-    model.add(Convolution2D(nb_filters, (kernel_size[0], kernel_size[1]),
-                            border_mode='valid', activation="relu",
-                            input_shape=(1, img_rows, img_cols)))
-
-    model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
-                            border_mode='valid', activation="relu"))
-
-    model.add(MaxPooling2D(pool_size=(nb_pool, nb_pool)))
-    model.add(Dropout(0.25))
-
-    model.add(Flatten())
-
-    model.add(Dense(nb_classes))
-    model.add(Activation('softmax'))
-
-    model.summary()
-
-    model.compile(loss='categorical_crossentropy',
-                  optimizer=RMSprop(),
-                  metrics=['accuracy'])
-
-    batch_size = 128
-    nb_epoch = 5
-
-    history = model.fit(X_train, Y_train,
-                        batch_size=batch_size, nb_epoch=nb_epoch,
-                        verbose=1, validation_data=(X_test, Y_test))
-    model.save('m.h5')
-    ### GUI###
     app = QApplication(sys.argv)
     ui = MainWindow()
     ui.show()

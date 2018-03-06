@@ -2,13 +2,12 @@
 
 # Form implementation generated from reading ui file 'Ui_matplotlib_pyqt4.ui'
 #
-# Created: Sat Mar 03 00:19:08 2018
+# Created: Tue Mar 06 01:30:16 2018
 #      by: PyQt4 UI code generator 4.10
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt4 import QtCore, QtGui
-
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -45,10 +44,6 @@ class Ui_MainWindow(object):
         self.matplotlibwidget_static_2 = MatplotlibWidget(self.matplotlibwidget_static)
         self.matplotlibwidget_static_2.setGeometry(QtCore.QRect(-140, 30, 511, 431))
         self.matplotlibwidget_static_2.setObjectName(_fromUtf8("matplotlibwidget_static_2"))
-        self.horizontalSlider = QtGui.QSlider(self.centralwidget)
-        self.horizontalSlider.setGeometry(QtCore.QRect(230, 490, 160, 22))
-        self.horizontalSlider.setOrientation(QtCore.Qt.Horizontal)
-        self.horizontalSlider.setObjectName(_fromUtf8("horizontalSlider"))
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 23))
@@ -61,10 +56,8 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QtCore.QObject.connect(self.pushButton, QtCore.SIGNAL(_fromUtf8("clicked()")), self.matplotlibwidget_static.show)
         QtCore.QObject.connect(self.pushButton, QtCore.SIGNAL(_fromUtf8("clicked()")), self.matplotlibwidget_static_2.hide)
-        QtCore.QObject.connect(self.pushButton, QtCore.SIGNAL(_fromUtf8("clicked()")), self.horizontalSlider.hide)
         QtCore.QObject.connect(self.pushButton_2, QtCore.SIGNAL(_fromUtf8("clicked()")), self.matplotlibwidget_static.hide)
         QtCore.QObject.connect(self.pushButton_2, QtCore.SIGNAL(_fromUtf8("clicked()")), MainWindow.show)
-        QtCore.QObject.connect(self.pushButton_2, QtCore.SIGNAL(_fromUtf8("clicked()")), self.horizontalSlider.show)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
