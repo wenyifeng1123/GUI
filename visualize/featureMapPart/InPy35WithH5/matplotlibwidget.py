@@ -126,22 +126,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def show_activation_names(self):
         qList=[]
         model = h5py.File('layer2ge.h5', 'r')
-        layersName = []
-        layersFeatures = {}
 
         for i in model['layers']:
             layerIndex = 'layers' + '/' + i
 
             for n in model[layerIndex]:
-                layerName = layerIndex + '/' + n
-                layersName.append(n)
+                qList.append(n)
 
-                featurePath = layerName + '/' + 'activation'
-                layersFeatures[n] = model[featurePath]
-        # model.close()
-
-        for feature_map in layersFeatures:
-            qList.append(feature_map)
         return qList
 
 
