@@ -1,0 +1,216 @@
+# -*- coding: utf-8 -*-
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use("Qt5Agg")
+from PyQt5 import QtCore
+from PyQt5.QtCore import pyqtSlot,QStringListModel,pyqtSignal
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QSizePolicy, QWidget, QListView,QMessageBox
+from numpy import arange, sin, pi
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from Ui_matplotlib_pyqt_2ListView import Ui_MainWindow
+import h5py
+from network_visualization import plot_mosaic, getLayersWeights, on_click_axes
+
+
+class MainWindow(QMainWindow, Ui_MainWindow):
+    """
+    Class documentation goes here.
+    """
+
+    def __init__(self, parent=None):
+        """
+        Constructor
+        @param parent reference to the parent widget
+        @type QWidget
+        """
+        super(MainWindow, self).__init__(parent)
+        self.setupUi(self)
+
+        self.matplotlibwidget_static.hide()
+        self.matplotlibwidget_static_2.hide()
+        self.chosenActivationName = []
+        self.chosenPatchNumber = 0
+        #self.qList, self.allPatches = self.show_activation_names()
+        self.qList, self.totalPatches = self.show_activation_names()
+        self.listView.clicked.connect(self.clickList_1)
+        #self.listView_2.clicked.connect(self.clickList_2)
+
+
+
+    def sliderValue(self):
+        print(self.horizontalSlider.value())
+        self.chosenPatchNumber=self.horizontalSlider.value()
+
+    @pyqtSlot()
+    def on_pushButton_clicked(self):
+        self.matplotlibwidget_static_2.hide()
+        self.matplotlibwidget_static.mpl.weights_plot()
+
+    @pyqtSlot()
+    def on_pushButton_2_clicked(self):
+
+        # show the activations' name in the List
+        slm = QStringListModel();
+        #slm_2 = QStringListModel();
+        slm.setStringList(self.qList)
+        #slm_2.setStringList(self.allPatches)
+        self.listView.setModel(slm)
+        #self.listView_2.setModel(slm_2)
+
+    @pyqtSlot()
+    def on_pushButton_3_clicked(self):
+        self.matplotlibwidget_static_2.show()
+        self.horizontalSlider.setMinimum(0)
+        self.horizontalSlider.setMaximum(self.totalPatches)
+        self.horizontalSlider.valueChanged.connect(self.sliderValue)
+        self.matplotlibwidget_static_2.mpl.feature_plot(self.chosenActivationName, self.chosenPatchNumber)
+
+    def clickList_1(self, qModelIndex):
+        self.chosenActivationName = self.qList[qModelIndex.row()]
+
+    def clickList_2(self, qModelIndex):
+        self.chosenPatchNumber = self.allPatches[qModelIndex.row()]
+
+    def show_activation_names(self):
+        qList = []
+        model = h5py.File('layer2ge.h5', 'r')
+        layersName = []
+        layersFeatures = {}
+        totalPatches = 0
+        #allPatches = []
+
+        for i in model['layers']:
+            layerIndex = 'layers' + '/' + i
+
+            for n in model[layerIndex]:
+                qList.append(n)
+
+                if int(i) == 0:
+                    layerName = layerIndex + '/' + n
+                    layersName.append(n)
+
+                    featurePath = layerName + '/' + 'activation'
+                    layersFeatures[n] = model[featurePath]
+                    totalPatches = layersFeatures[n].shape[0]
+        '''
+        for i in range(totalPatches):
+            allPatches.append(str(i))
+        '''
+        #return qList, allPatches
+        return qList, totalPatches
+
+
+
+class MyMplCanvas(FigureCanvas):
+
+    def __init__(self, parent=None, width=15, height=15):
+
+        plt.rcParams['font.family'] = ['SimHei']
+        plt.rcParams['axes.unicode_minus'] = False
+
+        self.fig = plt.figure(figsize=(width, height))
+
+        FigureCanvas.__init__(self, self.fig)
+        self.setParent(parent)
+
+
+        FigureCanvas.setSizePolicy(self,
+                                   QSizePolicy.Expanding,
+                                   QSizePolicy.Expanding)
+        FigureCanvas.updateGeometry(self)
+
+
+
+    def weights_plot(self):
+
+        layersName, layersWeights = getLayersWeights()
+        layerLength = len(layersName)
+        spacing = 1.2
+        axNumber = layerLength * 2 - 1
+
+        for i in range(axNumber):
+
+            self.axes = self.fig.add_subplot(axNumber, 1, i + 1)
+            if i % 2 == 0:
+                bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
+                self.axes.text(0.5, 0.5, layersName[int(i / 2)], ha="center", va="center", size=20,
+                               bbox=bbox_props)
+                self.axes.name = layersName[int(i / 2)]
+            elif i != axNumber - 1:
+                self.axes.annotate('', xy=(0.5, 0), xytext=(0.5, 1),
+                                   arrowprops=dict(facecolor='black', shrink=0.05))
+                self.axes.name = 'arrow'
+            else:
+                pass
+
+            self.axes.set_axis_off()
+
+        self.fig.canvas.mpl_connect('button_press_event', on_click_axes)
+
+
+
+    def feature_plot(self,feature_map,ind):
+
+        layersName, activations = self.getLayersFeatures()
+
+        if activations[feature_map].ndim == 4:
+
+
+            featMap=activations[feature_map][ind]
+            # Compute nrows and ncols for images
+            n_mosaic = len(featMap)
+            nrows = int(np.round(np.sqrt(n_mosaic)))
+            ncols = int(nrows)
+            if (nrows ** 2) < n_mosaic:
+                ncols += 1
+
+            plot_mosaic(featMap, nrows, ncols, self.fig)
+            self.fig.suptitle("Feature Maps of Patch #{} in Layer '{}'".format(ind, feature_map))
+
+        else:
+            pass
+
+
+
+
+    def getLayersFeatures(self):
+        model = h5py.File('layer2ge.h5', 'r')
+        layersName = []
+        layersFeatures = {}
+
+        for i in model['layers']:
+            layerIndex = 'layers' + '/' + i
+
+            for n in model[layerIndex]:
+                layerName = layerIndex + '/' + n
+                layersName.append(n)
+
+                featurePath = layerName + '/' + 'activation'
+                layersFeatures[n] = model[featurePath]
+        # model.close()
+        return layersName, layersFeatures
+
+
+class MatplotlibWidget(QWidget):
+    def __init__(self, parent=None):
+        super(MatplotlibWidget, self).__init__(parent)
+        self.initUi()
+
+    def initUi(self):
+        self.layout = QVBoxLayout(self)
+        self.mpl = MyMplCanvas(self, width=15, height=15)
+        self.layout.addWidget(self.mpl)
+
+
+
+
+
+
+if __name__ == '__main__':
+    import sys
+    app = QApplication(sys.argv)
+    ui = MainWindow()
+    ui.show()
+    sys.exit(app.exec_())
