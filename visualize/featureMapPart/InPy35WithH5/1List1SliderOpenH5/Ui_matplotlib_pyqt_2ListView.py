@@ -58,9 +58,6 @@ class Ui_MainWindow(object):
         self.pushButton.clicked.connect(self.matplotlibwidget_static.show)
         self.pushButton.clicked.connect(self.matplotlibwidget_static_2.hide)
         self.pushButton_2.clicked.connect(self.matplotlibwidget_static.hide)
-
-
-
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -72,7 +69,5 @@ class Ui_MainWindow(object):
         self.pushButton_2.setText(_translate("MainWindow", "Show the archietecture"))
         self.pushButton_3.setText(_translate("MainWindow", "Show the Plot"))
         self.pushButton_4.setText(_translate("MainWindow", "Choose the file"))
-
-
 
 from matplotlibwidget import MatplotlibWidget
