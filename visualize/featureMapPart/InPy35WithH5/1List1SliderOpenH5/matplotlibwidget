@@ -55,13 +55,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def sliderValue(self):
         self.chosenPatchNumber=self.horizontalSlider.value()
-        self.matplotlibwidget_static_2.mpl.feature_plot(self.chosenActivationName, self.chosenPatchNumber)
+        self.matplotlibwidget_static_2.mpl.feature_plot(self.chosenActivationName, self.chosenPatchNumber,self.openfile_name)
 
     @pyqtSlot()
     def on_pushButton_clicked(self):
         # show the weights
         self.matplotlibwidget_static_2.hide()
-        self.matplotlibwidget_static.mpl.weights_plot()
+        self.matplotlibwidget_static.mpl.weights_plot(self.openfile_name)
 
     @pyqtSlot()
     def on_pushButton_2_clicked(self):
@@ -75,7 +75,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_pushButton_3_clicked(self):
         # choose which layer's feature maps to be plotted
         self.matplotlibwidget_static_2.show()
-        self.matplotlibwidget_static_2.mpl.feature_plot(self.chosenActivationName, self.chosenPatchNumber)
+        self.matplotlibwidget_static_2.mpl.feature_plot(self.chosenActivationName, self.chosenPatchNumber,self.openfile_name)
 
     def clickList_1(self, qModelIndex):
         self.chosenActivationName = self.qList[qModelIndex.row()]
@@ -112,6 +112,7 @@ class MyMplCanvas(FigureCanvas):
         plt.rcParams['axes.unicode_minus'] = False
 
         self.fig = plt.figure(figsize=(width, height))
+        self.openfile_name=''
 
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
@@ -120,8 +121,9 @@ class MyMplCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
 
-    def weights_plot(self):
+    def weights_plot(self,openfile_name):
 
+        self.openfile_name=openfile_name
         layersName, layersWeights = self.getLayersWeights()
         layerLength = len(layersName)
         axNumber = layerLength * 2 - 1
@@ -145,8 +147,9 @@ class MyMplCanvas(FigureCanvas):
 
         self.fig.canvas.mpl_connect('button_press_event', self.on_click_axes)
 
-    def feature_plot(self,feature_map,ind):
+    def feature_plot(self,feature_map,ind,openfile_name):
 
+        self.openfile_name=openfile_name
         layersName, activations = self.getLayersFeatures()
 
 
@@ -202,7 +205,7 @@ class MyMplCanvas(FigureCanvas):
         event.canvas.draw()
 
     def getLayersWeights(self):
-        model = h5py.File('layer2ge.h5', 'r')
+        model = h5py.File(self.openfile_name, 'r')
         layersName = []
         layersWeights = {}
 
@@ -219,7 +222,7 @@ class MyMplCanvas(FigureCanvas):
         return layersName, layersWeights
 
     def getLayersFeatures(self):
-        model = h5py.File('layer2ge.h5', 'r')
+        model = h5py.File(self.openfile_name, 'r')
         layersName = []
         layersFeatures = {}
 
