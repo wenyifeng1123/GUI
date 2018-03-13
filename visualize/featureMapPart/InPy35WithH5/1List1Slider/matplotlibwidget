@@ -30,29 +30,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.matplotlibwidget_static.hide()
         self.matplotlibwidget_static_2.hide()
+
+        #in the listView the select name will save in chosenActivationName
         self.chosenActivationName = []
+        # the slider's value is the chosen patch's number
         self.chosenPatchNumber = 0
-        #self.qList, self.allPatches = self.show_activation_names()
+        # from the .h5 file extract the name of each layer and the total number of patches
         self.qList, self.totalPatches = self.show_activation_names()
         self.listView.clicked.connect(self.clickList_1)
         self.horizontalSlider.setMinimum(0)
         self.horizontalSlider.setMaximum(self.totalPatches - 1)
-        self.horizontalSlider.valueChanged.connect(self.sliderValue)
+        #self.horizontalSlider.valueChanged.connect(self.sliderValue)
+        self.horizontalSlider.sliderReleased.connect(self.sliderValue)
+
 
 
     def sliderValue(self):
-        print(self.horizontalSlider.value())
         self.chosenPatchNumber=self.horizontalSlider.value()
         self.matplotlibwidget_static_2.mpl.feature_plot(self.chosenActivationName, self.chosenPatchNumber)
 
     @pyqtSlot()
     def on_pushButton_clicked(self):
+        # show the weights
         self.matplotlibwidget_static_2.hide()
         self.matplotlibwidget_static.mpl.weights_plot()
 
     @pyqtSlot()
     def on_pushButton_2_clicked(self):
-
         # show the activations' name in the List
         slm = QStringListModel();
         slm.setStringList(self.qList)
@@ -61,14 +65,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot()
     def on_pushButton_3_clicked(self):
-
+        # choose which layer's feature maps to be plotted
         self.matplotlibwidget_static_2.show()
         self.matplotlibwidget_static_2.mpl.feature_plot(self.chosenActivationName, self.chosenPatchNumber)
 
     def clickList_1(self, qModelIndex):
         self.chosenActivationName = self.qList[qModelIndex.row()]
-
-
 
     def show_activation_names(self):
         qList = []
@@ -76,7 +78,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         layersName = []
         layersFeatures = {}
         totalPatches = 0
-        #allPatches = []
 
         for i in model['layers']:
             layerIndex = 'layers' + '/' + i
@@ -87,7 +88,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if int(i) == 0:
                     layerName = layerIndex + '/' + n
                     layersName.append(n)
-
                     featurePath = layerName + '/' + 'activation'
                     layersFeatures[n] = model[featurePath]
                     totalPatches = layersFeatures[n].shape[0]
@@ -108,19 +108,14 @@ class MyMplCanvas(FigureCanvas):
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
 
-
-        FigureCanvas.setSizePolicy(self,
-                                   QSizePolicy.Expanding,
-                                   QSizePolicy.Expanding)
+        FigureCanvas.setSizePolicy(self,QSizePolicy.Expanding,QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-
 
 
     def weights_plot(self):
 
         layersName, layersWeights = self.getLayersWeights()
         layerLength = len(layersName)
-        spacing = 1.2
         axNumber = layerLength * 2 - 1
 
         for i in range(axNumber):
@@ -142,16 +137,38 @@ class MyMplCanvas(FigureCanvas):
 
         self.fig.canvas.mpl_connect('button_press_event', self.on_click_axes)
 
+    def feature_plot(self,feature_map,ind):
+
+        layersName, activations = self.getLayersFeatures()
+
+
+        if activations[feature_map].ndim == 4:
+            featMap=activations[feature_map][ind]
+
+            # Compute nrows and ncols for images
+            n_mosaic = len(featMap)
+            nrows = int(np.round(np.sqrt(n_mosaic)))
+            ncols = int(nrows)
+            if (nrows ** 2) < n_mosaic:
+                ncols += 1
+
+            self.fig.clear()
+            self.plot_mosaic(featMap, nrows, ncols, self.fig)
+            self.fig.suptitle("Feature Maps of Patch #{} in Layer '{}'".format(ind, feature_map))
+
+        else:
+            pass
+
     def on_click_axes(self,event):
         """Enlarge or restore the selected axis."""
 
         ax = event.inaxes
         layersName, layersWeights = self.getLayersWeights()
         if ax is None:
-            # Occurs when a region not in an axis is clicked...
+
             return
         if event.button is 1:
-            # event.canvas.matplotlibwidget_static_2.setVisible(True)
+
             f = plt.figure()
             if ax.name == 'arrow':
                 return
@@ -193,30 +210,6 @@ class MyMplCanvas(FigureCanvas):
         # model.close()
         return layersName, layersWeights
 
-
-    def feature_plot(self,feature_map,ind):
-
-        layersName, activations = self.getLayersFeatures()
-
-        if activations[feature_map].ndim == 4:
-            featMap=activations[feature_map][ind]
-
-            # Compute nrows and ncols for images
-            n_mosaic = len(featMap)
-            nrows = int(np.round(np.sqrt(n_mosaic)))
-            ncols = int(nrows)
-            if (nrows ** 2) < n_mosaic:
-                ncols += 1
-
-            self.plot_mosaic(featMap, nrows, ncols, self.fig)
-            self.fig.suptitle("Feature Maps of Patch #{} in Layer '{}'".format(ind, feature_map))
-
-        else:
-            pass
-
-
-
-
     def getLayersFeatures(self):
         model = h5py.File('layer2ge.h5', 'r')
         layersName = []
@@ -233,8 +226,6 @@ class MyMplCanvas(FigureCanvas):
                 layersFeatures[n] = model[featurePath]
         # model.close()
         return layersName, layersFeatures
-
-
 
     def plot_mosaic(self,im, nrows, ncols, fig,**kwargs):
 
@@ -297,6 +288,9 @@ class MyMplCanvas(FigureCanvas):
             # No need to re-draw the canvas if it's not a left or right click
             return
         event.canvas.draw()
+
+
+
 class MatplotlibWidget(QWidget):
     def __init__(self, parent=None):
         super(MatplotlibWidget, self).__init__(parent)
