@@ -6,7 +6,10 @@ import matplotlib
 matplotlib.use("Qt5Agg")
 from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSlot,QStringListModel,pyqtSignal
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QSizePolicy, QWidget, QListView,QMessageBox,QFileDialog
+#from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QSizePolicy, QWidget, QListView,QMessageBox,QFileDialog,QDialog,QPushButton
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 from numpy import arange, sin, pi
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from Ui_matplotlib_pyqt_2ListView import Ui_MainWindow
@@ -41,7 +44,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # from the .h5 file extract the name of each layer and the total number of patches
         self.pushButton_4.clicked.connect(self.openfile)
-        #self.qList, self.totalPatches = self.show_activation_names()
         self.listView.clicked.connect(self.clickList_1)
 
         #self.horizontalSlider.valueChanged.connect(self.sliderValue)
@@ -59,23 +61,41 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot()
     def on_pushButton_clicked(self):
-        # show the weights
-        self.matplotlibwidget_static_2.hide()
-        self.matplotlibwidget_static.mpl.weights_plot(self.openfile_name)
+        if len(self.openfile_name) != 0:
+            # show the weights
+            self.matplotlibwidget_static_2.hide()
+            self.matplotlibwidget_static.show()
+            self.matplotlibwidget_static.mpl.weights_plot(self.openfile_name)
+        else:
+            self.showChooseFileDialog()
 
     @pyqtSlot()
     def on_pushButton_2_clicked(self):
-        # show the activations' name in the List
-        slm = QStringListModel();
-        slm.setStringList(self.qList)
-        self.listView.setModel(slm)
+
+        if len(self.openfile_name)!=0:
+            self.matplotlibwidget_static.hide()
+            # show the activations' name in the List
+            slm = QStringListModel();
+            slm.setStringList(self.qList)
+            self.listView.setModel(slm)
+        else:
+            self.showChooseFileDialog()
 
 
     @pyqtSlot()
     def on_pushButton_3_clicked(self):
-        # choose which layer's feature maps to be plotted
-        self.matplotlibwidget_static_2.show()
-        self.matplotlibwidget_static_2.mpl.feature_plot(self.chosenActivationName, self.chosenPatchNumber,self.openfile_name)
+        if len(self.openfile_name) != 0 :
+            if len(self.chosenActivationName)!=0:
+                # choose which layer's feature maps to be plotted
+                self.matplotlibwidget_static.hide()
+                self.matplotlibwidget_static_2.show()
+                self.matplotlibwidget_static_2.mpl.feature_plot(self.chosenActivationName, self.chosenPatchNumber,self.openfile_name)
+            else:
+                self.showChooseLayerDialog()
+        else:
+            self.showChooseFileDialog()
+
+
 
     def clickList_1(self, qModelIndex):
         self.chosenActivationName = self.qList[qModelIndex.row()]
@@ -102,7 +122,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         return qList, totalPatches
 
+    def showChooseFileDialog(self):
+        reply = QMessageBox.information(self,
+                                        "Warning",
+                                        "Please select one H5 File at first",
+                                        QMessageBox.Ok )
 
+    def showChooseLayerDialog(self):
+        reply = QMessageBox.information(self,
+                                        "Warning",
+                                        "Please select one Layer at first",
+                                        QMessageBox.Ok)
 
 class MyMplCanvas(FigureCanvas):
 
@@ -119,6 +149,8 @@ class MyMplCanvas(FigureCanvas):
 
         FigureCanvas.setSizePolicy(self,QSizePolicy.Expanding,QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
+
+        self.fig.canvas.mpl_connect('button_press_event', self.on_click)
 
 
     def weights_plot(self,openfile_name):
@@ -164,9 +196,11 @@ class MyMplCanvas(FigureCanvas):
                 ncols += 1
 
             self.fig.clear()
-            self.plot_mosaic(featMap, nrows, ncols, self.fig)
+            # self.draw()
+            # self.show()
+            self.plot_mosaic(featMap, nrows, ncols)
             self.fig.suptitle("Feature Maps of Patch #{} in Layer '{}'".format(ind, feature_map))
-
+            self.draw()
         else:
             pass
 
@@ -194,7 +228,7 @@ class MyMplCanvas(FigureCanvas):
                 if nrows ** 2 < mosaic_number:
                     ncols += 1
 
-                f = self.plot_mosaic(w[:mosaic_number, 0], nrows, ncols, f)
+                # f = self.plot_mosaic(w[:mosaic_number, 0], nrows, ncols, f)    modified
                 plt.suptitle("Weights of Layer '{}'".format(ax.name))
                 f.show()
             else:
@@ -238,7 +272,7 @@ class MyMplCanvas(FigureCanvas):
         # model.close()
         return layersName, layersFeatures
 
-    def plot_mosaic(self,im, nrows, ncols, fig,**kwargs):
+    def plot_mosaic(self,im, nrows, ncols, **kwargs):
 
         # Set default matplotlib parameters
         if not 'interpolation' in kwargs.keys():
@@ -250,9 +284,6 @@ class MyMplCanvas(FigureCanvas):
         nimgs = len(im)
         imshape = im[0].shape
 
-        import matplotlib.pyplot as plt
-        import numpy as np
-
         mosaic = np.zeros(imshape)
         #fig.clear()
 
@@ -260,7 +291,7 @@ class MyMplCanvas(FigureCanvas):
             row = int(np.floor(i / ncols))
             col = i % ncols
 
-            ax = fig.add_subplot(nrows, ncols,i+1)
+            ax = self.fig.add_subplot(nrows, ncols,i+1)
             ax.set_xlim(0,imshape[0]-1)
             ax.set_ylim(0,imshape[1]-1)
 
@@ -268,9 +299,8 @@ class MyMplCanvas(FigureCanvas):
 
             ax.imshow(mosaic, **kwargs)
             ax.set_axis_off()
+        self.draw()
 
-        fig.canvas.mpl_connect('button_press_event', self.on_click)
-        return fig
 
     def on_click(self,event):
         """Enlarge or restore the selected axis."""
@@ -311,10 +341,6 @@ class MatplotlibWidget(QWidget):
         self.layout = QVBoxLayout(self)
         self.mpl = MyMplCanvas(self, width=15, height=15)
         self.layout.addWidget(self.mpl)
-
-
-
-
 
 
 if __name__ == '__main__':
