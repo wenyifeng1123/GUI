@@ -150,7 +150,7 @@ class MyMplCanvas(FigureCanvas):
         FigureCanvas.setSizePolicy(self,QSizePolicy.Expanding,QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
-        self.fig.canvas.mpl_connect('button_press_event', self.on_click)
+
 
 
     def weights_plot(self,openfile_name):
@@ -198,7 +198,7 @@ class MyMplCanvas(FigureCanvas):
             self.fig.clear()
             # self.draw()
             # self.show()
-            self.plot_mosaic(featMap, nrows, ncols)
+            self.plot_feature_mosaic(featMap, nrows, ncols)
             self.fig.suptitle("Feature Maps of Patch #{} in Layer '{}'".format(ind, feature_map))
             self.draw()
         else:
@@ -228,7 +228,7 @@ class MyMplCanvas(FigureCanvas):
                 if nrows ** 2 < mosaic_number:
                     ncols += 1
 
-                # f = self.plot_mosaic(w[:mosaic_number, 0], nrows, ncols, f)    modified
+                f = self.plot_weight_mosaic(w[:mosaic_number, 0], nrows, ncols, f)
                 plt.suptitle("Weights of Layer '{}'".format(ax.name))
                 f.show()
             else:
@@ -272,7 +272,39 @@ class MyMplCanvas(FigureCanvas):
         # model.close()
         return layersName, layersFeatures
 
-    def plot_mosaic(self,im, nrows, ncols, **kwargs):
+    def plot_weight_mosaic(self,im, nrows, ncols, fig,**kwargs):
+
+        # Set default matplotlib parameters
+        if not 'interpolation' in kwargs.keys():
+            kwargs['interpolation'] = "none"
+
+        if not 'cmap' in kwargs.keys():
+            kwargs['cmap'] = "gray"
+
+        nimgs = len(im)
+        imshape = im[0].shape
+
+        mosaic = np.zeros(imshape)
+
+
+        for i in range(nimgs):
+            row = int(np.floor(i / ncols))
+            col = i % ncols
+
+            ax = fig.add_subplot(nrows, ncols,i+1)
+            ax.set_xlim(0,imshape[0]-1)
+            ax.set_ylim(0,imshape[1]-1)
+
+            mosaic = im[i]
+
+            ax.imshow(mosaic, **kwargs)
+            ax.set_axis_off()
+
+        fig.canvas.mpl_connect('button_press_event', self.on_click)
+        return fig
+
+
+    def plot_feature_mosaic(self,im, nrows, ncols, **kwargs):
 
         # Set default matplotlib parameters
         if not 'interpolation' in kwargs.keys():
@@ -300,6 +332,7 @@ class MyMplCanvas(FigureCanvas):
             ax.imshow(mosaic, **kwargs)
             ax.set_axis_off()
         self.draw()
+        self.fig.canvas.mpl_connect('button_press_event', self.on_click)
 
 
     def on_click(self,event):
