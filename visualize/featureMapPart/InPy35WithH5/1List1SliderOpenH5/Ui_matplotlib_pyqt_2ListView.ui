@@ -51,25 +51,25 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>80</y>
-      <width>171</width>
-      <height>101</height>
+      <y>200</y>
+      <width>191</width>
+      <height>51</height>
      </rect>
     </property>
     <property name="title">
-     <string>Weights</string>
+     <string>Visualization of Weights</string>
     </property>
     <widget class="QPushButton" name="pushButton">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>40</y>
-       <width>141</width>
-       <height>23</height>
+       <x>20</x>
+       <y>20</y>
+       <width>151</width>
+       <height>21</height>
       </rect>
      </property>
      <property name="text">
-      <string>Show the weights</string>
+      <string>Show the Weights</string>
      </property>
     </widget>
    </widget>
@@ -77,31 +77,31 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>190</y>
-      <width>171</width>
+      <y>260</y>
+      <width>191</width>
       <height>211</height>
      </rect>
     </property>
     <property name="title">
-     <string>Architecture</string>
+     <string>Visualization of Architecture</string>
     </property>
     <widget class="QPushButton" name="pushButton_2">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>20</x>
        <y>20</y>
        <width>151</width>
        <height>23</height>
       </rect>
      </property>
      <property name="text">
-      <string>Show the archietecture</string>
+      <string>Show the Layers' Names</string>
      </property>
     </widget>
     <widget class="QListView" name="listView">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>20</x>
        <y>50</y>
        <width>151</width>
        <height>121</height>
@@ -113,7 +113,7 @@
       <rect>
        <x>20</x>
        <y>180</y>
-       <width>121</width>
+       <width>151</width>
        <height>23</height>
       </rect>
      </property>
@@ -122,18 +122,54 @@
      </property>
     </widget>
    </widget>
-   <widget class="QPushButton" name="pushButton_4">
+   <widget class="QGroupBox" name="groupBox_3">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>20</y>
-      <width>161</width>
-      <height>23</height>
+      <x>10</x>
+      <y>30</y>
+      <width>191</width>
+      <height>161</height>
      </rect>
     </property>
-    <property name="text">
-     <string>Choose the file</string>
+    <property name="title">
+     <string>Choose one H5 file</string>
     </property>
+    <widget class="QPushButton" name="pushButton_4">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>20</y>
+       <width>151</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Choose the file</string>
+     </property>
+    </widget>
+    <widget class="QGroupBox" name="groupBox_4">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>60</y>
+       <width>151</width>
+       <height>91</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>The chosen file</string>
+     </property>
+     <widget class="QTextEdit" name="textEdit">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>20</y>
+        <width>151</width>
+        <height>71</height>
+       </rect>
+      </property>
+     </widget>
+    </widget>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -157,54 +193,5 @@
   </customwidget>
  </customwidgets>
  <resources/>
- <connections>
-  <connection>
-   <sender>pushButton</sender>
-   <signal>clicked()</signal>
-   <receiver>matplotlibwidget_static</receiver>
-   <slot>show()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>94</x>
-     <y>105</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>499</x>
-     <y>78</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pushButton</sender>
-   <signal>clicked()</signal>
-   <receiver>matplotlibwidget_static_2</receiver>
-   <slot>hide()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>114</x>
-     <y>105</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>320</x>
-     <y>137</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pushButton_2</sender>
-   <signal>clicked()</signal>
-   <receiver>matplotlibwidget_static</receiver>
-   <slot>hide()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>81</x>
-     <y>195</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>497</x>
-     <y>183</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>
