@@ -20,30 +20,40 @@
       <x>399</x>
       <y>10</y>
       <width>301</width>
-      <height>700</height>
+      <height>731</height>
      </rect>
     </property>
    </widget>
    <widget class="MatplotlibWidget" name="matplotlibwidget_static_2" native="true">
     <property name="geometry">
      <rect>
-      <x>320</x>
+      <x>230</x>
       <y>30</y>
-      <width>731</width>
-      <height>491</height>
+      <width>821</width>
+      <height>691</height>
      </rect>
     </property>
     <widget class="QSlider" name="horizontalSlider">
      <property name="geometry">
       <rect>
-       <x>240</x>
-       <y>460</y>
-       <width>181</width>
+       <x>20</x>
+       <y>660</y>
+       <width>531</width>
        <height>22</height>
       </rect>
      </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+    <widget class="QLCDNumber" name="lcdNumber">
+     <property name="geometry">
+      <rect>
+       <x>580</x>
+       <y>660</y>
+       <width>71</width>
+       <height>23</height>
+      </rect>
      </property>
     </widget>
    </widget>
