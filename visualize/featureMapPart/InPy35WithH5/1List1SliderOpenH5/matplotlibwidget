@@ -48,12 +48,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         #self.horizontalSlider.valueChanged.connect(self.sliderValue)
         self.horizontalSlider.sliderReleased.connect(self.sliderValue)
+        self.horizontalSlider.valueChanged.connect(self.lcdNumber.display)
 
     def openfile(self):
         self.openfile_name = QFileDialog.getOpenFileName(self,'Choose the file','.','H5 files(*.h5)')[0]
         self.qList, self.totalPatches = self.show_activation_names()
         self.horizontalSlider.setMinimum(0)
         self.horizontalSlider.setMaximum(self.totalPatches - 1)
+        self.textEdit.setPlainText(self.openfile_name)
 
     def sliderValue(self):
         self.chosenPatchNumber=self.horizontalSlider.value()
@@ -94,8 +96,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.showChooseLayerDialog()
         else:
             self.showChooseFileDialog()
-
-
 
     def clickList_1(self, qModelIndex):
         self.chosenActivationName = self.qList[qModelIndex.row()]
@@ -149,9 +149,6 @@ class MyMplCanvas(FigureCanvas):
 
         FigureCanvas.setSizePolicy(self,QSizePolicy.Expanding,QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-
-
-
 
     def weights_plot(self,openfile_name):
 
