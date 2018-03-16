@@ -155,7 +155,7 @@ for i,layer in enumerate(model.layers):
     get_activations = K.function([model.layers[0].input, K.learning_phase()], [layer.output, ])
     activations.append(get_activations([X_test[:11], 0])[0])
 
-h=h5py.File('layer.h5','w')
+h=h5py.File('layer11ge.h5','w')
 layers=h.create_group('layers')
 
 for i,layer in enumerate(model.layers):
@@ -215,3 +215,8 @@ if (nrows ** 2) <  nimgs:
 
 fig=plot_subset_mosaic(result, nrows, ncols, fig)
 plt.show()
+
+
+
+
+
