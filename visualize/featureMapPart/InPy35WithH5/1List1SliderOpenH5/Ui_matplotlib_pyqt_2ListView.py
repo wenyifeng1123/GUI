@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'Ui_matplotlib_pyqt_2ListView.ui'
+# Form implementation generated from reading ui file 'Ui_matplotlib_pyqt_2ListView3w.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -57,6 +57,15 @@ class Ui_MainWindow(object):
         self.textEdit = QtWidgets.QTextEdit(self.groupBox_4)
         self.textEdit.setGeometry(QtCore.QRect(0, 20, 151, 71))
         self.textEdit.setObjectName("textEdit")
+        self.groupBox_5 = QtWidgets.QGroupBox(self.centralwidget)
+        self.groupBox_5.setGeometry(QtCore.QRect(10, 480, 191, 51))
+        self.groupBox_5.setObjectName("groupBox_5")
+        self.pushButton_5 = QtWidgets.QPushButton(self.groupBox_5)
+        self.pushButton_5.setGeometry(QtCore.QRect(20, 20, 151, 23))
+        self.pushButton_5.setObjectName("pushButton_5")
+        self.matplotlibwidget_static_3 = MatplotlibWidget(self.centralwidget)
+        self.matplotlibwidget_static_3.setGeometry(QtCore.QRect(270, 20, 741, 571))
+        self.matplotlibwidget_static_3.setObjectName("matplotlibwidget_static_3")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1088, 23))
@@ -80,5 +89,7 @@ class Ui_MainWindow(object):
         self.groupBox_3.setTitle(_translate("MainWindow", "Choose one H5 file"))
         self.pushButton_4.setText(_translate("MainWindow", "Choose the file"))
         self.groupBox_4.setTitle(_translate("MainWindow", "The chosen file"))
+        self.groupBox_5.setTitle(_translate("MainWindow", "DeepVisualization"))
+        self.pushButton_5.setText(_translate("MainWindow", "Show Subset Selection"))
 
 from matplotlibwidget import MatplotlibWidget

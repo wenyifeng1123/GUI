@@ -23,6 +23,7 @@
       <height>731</height>
      </rect>
     </property>
+    <zorder>matplotlibwidget_static_2</zorder>
    </widget>
    <widget class="MatplotlibWidget" name="matplotlibwidget_static_2" native="true">
     <property name="geometry">
@@ -180,6 +181,42 @@
       </property>
      </widget>
     </widget>
+   </widget>
+   <widget class="QGroupBox" name="groupBox_5">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>480</y>
+      <width>191</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>DeepVisualization</string>
+    </property>
+    <widget class="QPushButton" name="pushButton_5">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>20</y>
+       <width>151</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Show Subset Selection</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="MatplotlibWidget" name="matplotlibwidget_static_3" native="true">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>20</y>
+      <width>741</width>
+      <height>571</height>
+     </rect>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
