@@ -12,7 +12,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from numpy import arange, sin, pi
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from Ui_matplotlib_pyqt_2ListView import Ui_MainWindow
+from Ui_matplotlib_pyqt_2ListView3w import Ui_MainWindow
 import h5py
 #from network_visualization import plot_mosaic,on_click
 
@@ -33,6 +33,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.matplotlibwidget_static.hide()
         self.matplotlibwidget_static_2.hide()
+        self.matplotlibwidget_static_3.hide()
 
         #in the listView the select name will save in chosenActivationName
         self.chosenActivationName = []
@@ -66,6 +67,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if len(self.openfile_name) != 0:
             # show the weights
             self.matplotlibwidget_static_2.hide()
+            self.matplotlibwidget_static_3.hide()
             self.matplotlibwidget_static.show()
             self.matplotlibwidget_static.mpl.weights_plot(self.openfile_name)
         else:
@@ -76,6 +78,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if len(self.openfile_name)!=0:
             self.matplotlibwidget_static.hide()
+            self.matplotlibwidget_static_3.hide()
             # show the activations' name in the List
             slm = QStringListModel();
             slm.setStringList(self.qList)
@@ -90,10 +93,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if len(self.chosenActivationName)!=0:
                 # choose which layer's feature maps to be plotted
                 self.matplotlibwidget_static.hide()
+                self.matplotlibwidget_static_3.hide()
                 self.matplotlibwidget_static_2.show()
                 self.matplotlibwidget_static_2.mpl.feature_plot(self.chosenActivationName, self.chosenPatchNumber,self.openfile_name)
             else:
                 self.showChooseLayerDialog()
+        else:
+            self.showChooseFileDialog()
+
+    @pyqtSlot()
+    def on_pushButton_5_clicked(self):
+        if len(self.openfile_name) != 0:
+            # show the weights
+            self.matplotlibwidget_static.hide()
+            self.matplotlibwidget_static_2.hide()
+            self.matplotlibwidget_static_3.show()
+            self.matplotlibwidget_static_3.mpl.subset_selection_plot(self.openfile_name)
         else:
             self.showChooseFileDialog()
 
@@ -201,6 +216,16 @@ class MyMplCanvas(FigureCanvas):
         else:
             pass
 
+    def subset_selection_plot(self,openfile_name):
+        self.openfile_name=openfile_name
+        subset_selection=self.getSubsetSelections(self.openfile_name)
+        nimgs = len(subset_selection)
+        nrows = int(np.round(np.sqrt(nimgs)))
+        ncols = int(nrows)
+        if (nrows ** 2) < nimgs:
+            ncols += 1
+
+        self.fig=self.plot_subset_mosaic(subset_selection, nrows, ncols, self.fig)
     def on_click_axes(self,event):
         """Enlarge or restore the selected axis."""
 
@@ -269,6 +294,11 @@ class MyMplCanvas(FigureCanvas):
         # model.close()
         return layersName, layersFeatures
 
+    def getSubsetSelections(self,openfile_name):
+        model = h5py.File(openfile_name, 'r')
+        subset_selection=model['subset_selection']
+        return subset_selection
+
     def plot_weight_mosaic(self,im, nrows, ncols, fig,**kwargs):
 
         # Set default matplotlib parameters
@@ -300,7 +330,6 @@ class MyMplCanvas(FigureCanvas):
         fig.canvas.mpl_connect('button_press_event', self.on_click)
         return fig
 
-
     def plot_feature_mosaic(self,im, nrows, ncols, **kwargs):
 
         # Set default matplotlib parameters
@@ -331,6 +360,33 @@ class MyMplCanvas(FigureCanvas):
         self.draw()
         self.fig.canvas.mpl_connect('button_press_event', self.on_click)
 
+    def plot_subset_mosaic(self,im,nrows, ncols, fig,**kwargs):
+        if not 'interpolation' in kwargs.keys():
+            kwargs['interpolation'] = "none"
+
+        if not 'cmap' in kwargs.keys():
+            kwargs['cmap'] = "gray"
+        im = np.squeeze(im, axis=1)
+        nimgs = len(im)
+        imshape = im[0].shape
+
+        mosaic = np.zeros(imshape)
+
+        for i in range(nimgs):
+            row = int(np.floor(i / ncols))
+            col = i % ncols
+
+            ax = fig.add_subplot(nrows, ncols, i + 1)
+            ax.set_xlim(0, imshape[0] - 1)
+            ax.set_ylim(0, imshape[1] - 1)
+
+            mosaic = im[i]
+
+            ax.imshow(mosaic, **kwargs)
+            ax.set_axis_off()
+        # fig.suptitle("Subset Selection of Patch #{} in Layer '{}'".format(ind, feature_map))
+        fig.canvas.mpl_connect('button_press_event', self.on_click)
+        return fig
 
     def on_click(self,event):
         """Enlarge or restore the selected axis."""
