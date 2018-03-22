@@ -1,0 +1,86 @@
+# -*- coding: utf-8 -*-
+
+from keras.layers import Dense
+from keras.models import Sequential
+from keras.utils.vis_utils import plot_model, model_to_dot
+from keras import layers
+import matplotlib
+import matplotlib.pyplot as plt
+
+# 第一个模型
+first_model = Sequential()
+first_model.add(Dense(3, input_dim=5))
+first_model.add(Dense(4))
+# 第二个模型
+second_model = Sequential()
+second_model.add(Dense(1, input_dim=2))
+second_model.add(Dense(4))
+model = Sequential()
+# concat_axis有四种合并方式:-2,-1,0,1
+model.add(layers.Merge([first_model, second_model], mode='concat', concat_axis=1))
+model.add(Dense(2))
+model.summary()
+#plot_model(model,'merge.png')
+# plot_model(model)
+dot = model_to_dot(model, show_shapes=False, show_layer_names=True, rankdir='TB')
+# node=dot.obj_dict['nodes']
+# edge=dot.obj_dict['edges']
+
+
+layers_by_depth = model.model.layers_by_depth
+layerLength = len(layers_by_depth)
+#axNumber = 2 * layerLength - 1
+
+maxCol = 0
+for i in layers_by_depth:
+    if int(len(layers_by_depth[i])) > maxCol:
+        maxCol = int(len(layers_by_depth[i]))
+
+fig = plt.figure()
+fig.show()
+bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
+
+row=0
+axesDict={}
+
+
+for i in range(layerLength):
+    row = i
+    for ind, l in enumerate(layers_by_depth[layerLength-i-1]):
+
+        subplotNumber=row*maxCol+ind+1
+        ax= fig.add_subplot(layerLength,maxCol ,subplotNumber)
+        ax.text(0.5, 0.5, l.name, ha="center", va="center", size=20,
+                  bbox=bbox_props)
+        ax.name=l.name
+        axesDict[ax.name]=ax
+        ax.set_axis_off()
+
+bbox_args = dict(boxstyle="round", fc="0.8")
+arrow_args = dict(arrowstyle="->")
+for i in layers_by_depth:
+    for ind,l in enumerate(layers_by_depth[i]):
+        if hasattr(l.input, '__len__'):
+            for ininput,linput in enumerate(l.input):
+                if linput.name.split('/')[0]!=l.name:
+                    inputLayer=linput.name.split('/')[0]
+                    ax_input=axesDict[inputLayer]
+                    ax_output=axesDict[l.name.split('/')[0]]
+
+                    an_output = ax_output.annotate('', xy=(.5, 1), xycoords='data',
+                                                   #xytext=(.5, 1), textcoords='axes fraction',
+                                                   ha="center", va="top",
+                                                   bbox=bbox_args,
+                                                  )
+                    an_input=ax_input.annotate('', xy=(.5, 0.8), xycoords=an_output,
+                                               xytext=(.5, 0.25), textcoords='axes fraction',
+                                               ha="center", va="top",
+                                               bbox=bbox_args,
+                                               arrowprops=arrow_args)
+                    an_input.draggable()
+
+
+        else:
+            pass
+plt.show()
+
