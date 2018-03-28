@@ -151,27 +151,70 @@ history = model.fit(X_train, Y_train,
                     batch_size=batch_size, nb_epoch=nb_epoch,
                     verbose=1, validation_data=(X_test, Y_test))
 
-activations=[]
-for i,layer in enumerate(model.layers):
-    get_activations = K.function([model.layers[0].input, K.learning_phase()], [layer.output, ])
-    activations.append(get_activations([X_test[:11], 0])[0])
+
 
 
 dot = model_to_dot(model, show_shapes=False, show_layer_names=True, rankdir='TB')
 layers_by_depth = model.model.layers_by_depth
 
-h=h5py.File('mergeAll.h5','w')
-layer_by_depth=h.create_group('layer_by_depth')
 
-## Save the structure, the layers' names in .h5 file
+h=h5py.File('layer11ge.h5','w')
+layer_by_depth=h.create_group('layer_by_depth')
+weights=h.create_group('weights')
+allLayerNames=[]
+
+## Save the structure,weights the layers' names in .h5 file
 for i in range(len(layers_by_depth)):
     i_layer = layer_by_depth.create_group(str(i)) #the No i layer  in the model
     for ind,layer in enumerate(layers_by_depth[i]): # the layers in No i layer in the model
         i_ind=i_layer.create_group(str(ind))
         layer_name=i_ind.create_dataset('layer_name', data=layer.name)
-h.close()
+        if len(layer.weights)==0:
+            w=0
+        else:
+            w=layer.weights[0].container.data
+        weights.create_dataset(layer.name,data=w) # save the weights
+        allLayerNames.append(layer.name)
 
+allTheLayerName=h.create_dataset('allLayerNames',data=allLayerNames)
 
-h=h5py.File('mergeAll.h5','r')
+#print(h['allLayerNames'].value)
+'''
+h=h5py.File('layer11ge.h5','r')
 i=h['layer_by_depth/0/0/layer_name']
 print(i.value)
+'''
+
+## Save the nodes and edges
+edges=dot.obj_dict['edges']
+nodes=dot.obj_dict['nodes']
+edgesInLayerName=[]
+nodesNumber={}
+
+
+for i in nodes:
+    if i=='node':
+        continue
+    layerName=nodes[i][0]['attributes']['label']
+    layerNumber=nodes[i][0]['name']
+    nodesNumber[layerNumber]=layerName
+
+for i in edges:
+    edgesInLayerName.append((nodesNumber[i[0]],nodesNumber[i[1]]))
+
+LayerName=h.create_dataset('edgesInLayerName', data=edgesInLayerName)
+#print(h['edgesInLayerName'][0])
+#print(h['layer_by_depth/0/0/layer_name'].value)
+#print(h['edgesInLayerName'][0])
+
+# save the features
+activation={}
+act=h.create_group('activations')
+for i,layer in enumerate(model.model.layers):
+    get_activations = K.function([model.model.layers[0].input, K.learning_phase()], [layer.output, ])
+    activation[layer.name]=get_activations([X_test[:11], 0])[0]
+    a = act.create_dataset(layer.name, data=activation[layer.name])
+
+
+
+h.close()
