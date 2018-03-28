@@ -22,7 +22,6 @@ import h5py
 
 # Load dataset
 
-
 def plot_subset_mosaic( im, nrows, ncols, fig, **kwargs):
     # Set default matplotlib parameters
     if not 'interpolation' in kwargs.keys():
@@ -215,6 +214,41 @@ for i,layer in enumerate(model.model.layers):
     activation[layer.name]=get_activations([X_test[:11], 0])[0]
     a = act.create_dataset(layer.name, data=activation[layer.name])
 
+#output    = model.get_output()
+class_idx = 0
+reg_param = 1 / (2e-4)
+output =T.dmatrix('output')
+output=model.output
+input = model.input
+cost  = -T.sum(T.log(input[:,class_idx]+1e-8))
+gradient = theano.tensor.grad(cost, input)
+calcCost = theano.function([input], cost)
+calcGrad = theano.function([input], gradient)
 
+#2. Use subset selection:
 
+step_size = 0.019
+reg_param = 1/(2e-4)
+
+#data_c = test[100:110] # extract images from the examples as initial point
+#resultAll = []
+test=X_test[:11]
+
+data_c = test
+oss_v = network_visualization.SubsetSelection(calcGrad, calcCost, data_c, alpha=reg_param, gamma=step_size)
+result = oss_v.optimize(np.random.uniform(0, 1.0, size=data_c.shape))
+h.create_dataset('subset_selection', data=result)
 h.close()
+
+fig=plt.figure()
+#fig.suptitle('subset selection')
+
+#result=np.squeeze(result,axis=1)
+nimgs = len(result)
+nrows = int(np.round(np.sqrt(nimgs)))
+ncols = int(nrows)
+if (nrows ** 2) <  nimgs:
+    ncols += 1
+
+fig=plot_subset_mosaic(result, nrows, ncols, fig)
+plt.show()
