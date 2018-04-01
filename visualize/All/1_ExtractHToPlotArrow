@@ -1,0 +1,70 @@
+# -*- coding: utf-8 -*-
+
+from keras.layers import Dense
+from keras.models import Sequential,load_model
+from keras.utils.vis_utils import plot_model, model_to_dot
+from keras import layers
+import matplotlib
+import matplotlib.pyplot as plt
+import h5py
+
+model=h5py.File('layer11ge.h5','r')
+activations=model['activations']
+edgesInLayerName=model['edgesInLayerName']
+layer_by_depth=model['layer_by_depth']
+subset_selection=model['subset_selection']
+weights=model['weights']
+maxCol = model['maxCol'].value + 1
+maxRow = model['maxRow'].value
+
+# plot all the layers
+fig = plt.figure()
+bbox_props = dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)
+fig.show()
+allLayerNames=[]
+axesDict={}
+
+for i in layer_by_depth:
+    layerPath='layer_by_depth'+'/'+i # the i'th layer of the model
+    for j in model[layerPath]:
+        layerPath2=layerPath+'/'+j # the j'th layer in layer i
+        for ind in model[layerPath2]:
+            layerPath3=layerPath2+'/'+ind
+            layerName=str(model[layerPath3].value)[2:-1]
+            allLayerNames.append(layerName)
+
+            subplotNumber = int(i) * maxCol + int(j) + 1
+            ax = fig.add_subplot(maxRow, maxCol, subplotNumber)
+            ax.text(0.5, 0.5, layerName, ha="center", va="center",
+                    bbox=bbox_props)
+            ax.name = layerName
+            axesDict[ax.name] = ax
+            ax.set_axis_off()
+
+edges=[]
+bbox_args = dict(boxstyle="round", fc="0.8")
+arrow_args = dict(arrowstyle="->")
+
+for i in edgesInLayerName:
+    inputLayer=str(i[0])[2:-1]
+    inputLayer=inputLayer.split(':')[0]
+    outputLayer=str(i[1])[2:-1]
+    outputLayer=outputLayer.split(':')[0]
+    edges.append((inputLayer,outputLayer))
+
+    ax_input = axesDict[inputLayer]
+    ax_output = axesDict[outputLayer]
+    an_i = ax_input.annotate('', xy=(.5, 0.9), xycoords='data',
+                                   # xytext=(.5, 1), textcoords='axes fraction',
+                                   ha="center", va="top",
+                                   bbox=bbox_args,
+                                   )
+    an_o = ax_output.annotate('', xy=(.5, 0.4), xycoords=an_i,
+                                 xytext=(.5, 0.2), textcoords='axes fraction',
+                                 ha="center", va="top",
+                                 bbox=bbox_args,
+                                 arrowprops=arrow_args)
+
+plt.draw()
+plt.show()
+
