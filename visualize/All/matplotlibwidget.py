@@ -47,6 +47,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.model={}
         self.qList=[]
         self.totalPatches=0
+        self.activations = {}
 
         # from the .h5 file extract the name of each layer and the total number of patches
         self.pushButton_4.clicked.connect(self.openfile)
@@ -59,15 +60,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def openfile(self):
         self.openfile_name = QFileDialog.getOpenFileName(self,'Choose the file','.','H5 files(*.h5)')[0]
         self.model=h5py.File(self.openfile_name,'r')
-        #self.qList, self.totalPatches = self.show_activation_names()
-        #self.horizontalSlider.setMinimum(0)
-        #self.horizontalSlider.setMaximum(self.totalPatches - 1)
-        #self.textEdit.setPlainText(self.openfile_name)
+        self.qList, self.totalPatches = self.show_activation_names()
+        self.horizontalSlider.setMinimum(0)
+        self.horizontalSlider.setMaximum(self.totalPatches - 1)
+        self.textEdit.setPlainText(self.openfile_name)
 
 
     def sliderValue(self):
         self.chosenPatchNumber=self.horizontalSlider.value()
-        self.matplotlibwidget_static_2.mpl.feature_plot(self.chosenActivationName, self.chosenPatchNumber,self.openfile_name)
+        self.matplotlibwidget_static_2.mpl.feature_plot(self.chosenActivationName, self.chosenPatchNumber,self.activations)
 
     @pyqtSlot()
     def on_pushButton_clicked(self):
@@ -103,7 +104,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.matplotlibwidget_static.hide()
                 self.matplotlibwidget_static_3.hide()
                 self.matplotlibwidget_static_2.show()
-                self.matplotlibwidget_static_2.mpl.feature_plot(self.chosenActivationName, self.chosenPatchNumber,self.openfile_name)
+                self.matplotlibwidget_static_2.mpl.feature_plot(self.chosenActivationName, self.chosenPatchNumber,self.activations)
             else:
                 self.showChooseLayerDialog()
         else:
@@ -126,22 +127,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def show_activation_names(self):
         qList = []
-        layersName = []
-        layersFeatures = {}
         totalPatches = 0
+        activations = self.model['activations']
 
-        for i in self.model['layers']:
-            layerIndex = 'layers' + '/' + i
-
-            for n in self.model[layerIndex]:
-                qList.append(n)
-
-                if int(i) == 0:
-                    layerName = layerIndex + '/' + n
-                    layersName.append(n)
-                    featurePath = layerName + '/' + 'activation'
-                    layersFeatures[n] = self.model[featurePath]
-                    totalPatches = layersFeatures[n].shape[0]
+        for i in activations:
+            qList.append(i)
+            layerPath = 'activations' + '/' + i
+            self.activations[i] = self.model[layerPath]
+            if totalPatches < len(self.activations[i]):
+                totalPatches =len(self.activations[i])
 
         return qList, totalPatches
 
@@ -165,12 +159,13 @@ class MyMplCanvas(FigureCanvas):
         plt.rcParams['axes.unicode_minus'] = False
 
         self.fig = plt.figure(figsize=(width, height))
-        self.openfile_name=''
+        #self.openfile_name=''
         self.model = {}
         self.layerWeights = {}  # {layer name: weights value}
         self.edgesInLayerName = [] #(input layer name, output layer name)
         self.allLayerNames = []
         self.axesDict = {}
+        self.activations = {}
 
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
@@ -235,12 +230,9 @@ class MyMplCanvas(FigureCanvas):
         self.draw()
         self.fig.canvas.mpl_connect('button_press_event', self.on_click_axes)
 
-    def feature_plot(self,feature_map,ind,openfile_name):
+    def feature_plot(self,feature_map,ind,activations):
 
-        self.openfile_name=openfile_name
-        layersName, activations = self.getLayersFeatures()
-
-
+        self.activations=activations
         if activations[feature_map].ndim == 4:
             featMap=activations[feature_map][ind]
 
