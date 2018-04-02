@@ -41,7 +41,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #in the listView the select name will save in chosenActivationName
         self.chosenActivationName = []
         # the slider's value is the chosen patch's number
-        self.chosenPatchNumber = 0
+        self.chosenPatchNumber = 1
         self.openfile_name=''
 
         self.model={}
@@ -61,8 +61,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.openfile_name = QFileDialog.getOpenFileName(self,'Choose the file','.','H5 files(*.h5)')[0]
         self.model=h5py.File(self.openfile_name,'r')
         self.qList, self.totalPatches = self.show_activation_names()
-        self.horizontalSlider.setMinimum(0)
-        self.horizontalSlider.setMaximum(self.totalPatches - 1)
+        self.horizontalSlider.setMinimum(1)
+        self.horizontalSlider.setMaximum(self.totalPatches)
         self.textEdit.setPlainText(self.openfile_name)
 
 
@@ -118,7 +118,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.matplotlibwidget_static.hide()
             self.matplotlibwidget_static_2.hide()
             self.matplotlibwidget_static_3.show()
-            self.matplotlibwidget_static_3.mpl.subset_selection_plot(self.openfile_name)
+            self.matplotlibwidget_static_3.mpl.subset_selection_plot(self.model)
         else:
             self.showChooseFileDialog()
 
@@ -232,6 +232,7 @@ class MyMplCanvas(FigureCanvas):
 
     def feature_plot(self,feature_map,ind,activations):
 
+        ind = ind-1
         self.activations=activations
         if activations[feature_map].ndim == 4:
             featMap=activations[feature_map][ind]
@@ -247,14 +248,14 @@ class MyMplCanvas(FigureCanvas):
             # self.draw()
             # self.show()
             self.plot_feature_mosaic(featMap, nrows, ncols)
-            self.fig.suptitle("Feature Maps of Patch #{} in Layer '{}'".format(ind, feature_map))
+            self.fig.suptitle("Feature Maps of Patch #{} in Layer '{}'".format(ind+1, feature_map))
             self.draw()
         else:
             pass
 
-    def subset_selection_plot(self,openfile_name):
-        self.openfile_name=openfile_name
-        subset_selection=self.getSubsetSelections(self.openfile_name)
+    def subset_selection_plot(self,model):
+        self.model=model
+        subset_selection=self.getSubsetSelections()
         nimgs = len(subset_selection)
         nrows = int(np.round(np.sqrt(nimgs)))
         ncols = int(nrows)
@@ -262,6 +263,7 @@ class MyMplCanvas(FigureCanvas):
             ncols += 1
 
         self.fig=self.plot_subset_mosaic(subset_selection, nrows, ncols, self.fig)
+
     def on_click_axes(self,event):
         ax = event.inaxes
 
@@ -314,9 +316,9 @@ class MyMplCanvas(FigureCanvas):
         # model.close()
         return layersName, layersFeatures
 
-    def getSubsetSelections(self,openfile_name):
-        model = h5py.File(openfile_name, 'r')
-        subset_selection=model['subset_selection']
+    def getSubsetSelections(self):
+
+        subset_selection=self.model['subset_selection']
         return subset_selection
 
     def plot_weight_mosaic(self,im, nrows, ncols, fig,**kwargs):
