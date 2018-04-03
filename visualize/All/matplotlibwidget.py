@@ -60,6 +60,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def openfile(self):
         self.openfile_name = QFileDialog.getOpenFileName(self,'Choose the file','.','H5 files(*.h5)')[0]
         self.model=h5py.File(self.openfile_name,'r')
+
         self.qList, self.totalPatches = self.show_activation_names()
         self.horizontalSlider.setMinimum(1)
         self.horizontalSlider.setMaximum(self.totalPatches)
@@ -191,7 +192,9 @@ class MyMplCanvas(FigureCanvas):
                 layerPath2 = layerPath + '/' + j  # the j'th layer in layer i
                 for ind in self.model[layerPath2]:
                     layerPath3 = layerPath2 + '/' + ind
-                    layerName = str(self.model[layerPath3].value)[2:-1]
+                    aaa=self.model[layerPath3].value
+                    #layerName = str(self.model[layerPath3].value)[2:-1]
+                    layerName = aaa
                     self.allLayerNames.append(layerName)
 
                     subplotNumber = (maxRow - 1 - int(i)) * maxCol + int(j) + 1
@@ -226,7 +229,7 @@ class MyMplCanvas(FigureCanvas):
                                      bbox=bbox_args,
                                      arrowprops=arrow_args)
 
-
+        self.fig.tight_layout()
         self.draw()
         self.fig.canvas.mpl_connect('button_press_event', self.on_click_axes)
 
