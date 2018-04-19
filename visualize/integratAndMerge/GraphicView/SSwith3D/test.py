@@ -45,6 +45,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lcdNumberSlice.hide()
         self.lcdNumberSS.hide()
 
+        self.resetW=False
+        self.resetF = False
+        self.resetS = False
+
         self.chosenLayerName = []
         # the slider's value is the chosen patch's number
         self.chosenPatchNumber = 1
@@ -55,12 +59,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.qList=[]
         self.totalPatches=0
         self.totalSS=0
+
+        self.modelDimension= ''
         self.activations = {}
+        self.weights ={}
+        self.subset_selection = {}
         self.radioButtonValue=[]
         self.listView.clicked.connect(self.clickList)
 
-        self.modelDimension= ''
-        self.subset_selection = {}
+
 
         # slider of the feature
         self.horizontalSliderPatch.sliderReleased.connect(self.sliderValue)
@@ -121,7 +128,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def sliderValueSS(self):
         self.chosenSSNumber=self.horizontalSliderSS.value()
-        self.matplotlibwidget_static_2.mpl.subset_selection_plot(self.subset_selection,self.chosenSSNumber,self.totalSS)
+        self.matplotlibwidget_static_2.mpl.subset_selection_plot(self.chosenSSNumber,self.totalSS)
 
     @pyqtSlot()
     def on_wyChooseFile_clicked(self):
@@ -129,13 +136,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if len(self.openfile_name)==0:
             pass
         else:
+            self.resetW = True
+            self.resetF = True
+            self.resetS = True
+
             self.model=h5py.File(self.openfile_name,'r')
             # self.model['modelDimension'] = str(self.model['modelDimension'].value)[3:5]
             a=self.model['modelDimension'].value
             self.modelDimension=str(a)[3:5]
+            self.weights =self.model['weights']
 
             self.qList, self.totalPatches = self.show_layer_names()
             self.subset_selection =self.model['subset_selection']
+            self.subset_selection = np.squeeze(self.subset_selection, axis=1)
             self.totalSS = len(self.subset_selection)
 
             # set the patch value of the feature map
@@ -177,7 +190,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.lcdNumberPatch.hide()
                     self.horizontalSliderPatch.hide()
                     self.matplotlibwidget_static.show()
-                    self.matplotlibwidget_static.mpl.weights_plot(self.model,self.chosenLayerName)
+
+                    if self.modelDimension == '2D':
+                        self.matplotlibwidget_static.mpl.weights_plot(self.weights,self.chosenLayerName)
+                    elif self.modelDimension == '3D':
+                        self.horizontalSliderSlice.show()
+                        self.lcdNumberSlice.show()
+                        self.matplotlibwidget_static.mpl.weights_plot(self.weights, self.chosenLayerName)
+                    else:
+                        print('the dimesnion should be 2D or 3D')
 
                 else:
                     self.showChooseLayerDialog()
@@ -214,7 +235,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.matplotlibwidget_static_2.show()
             self.horizontalSliderSS.show()
             self.lcdNumberSS.show()
-            self.matplotlibwidget_static_2.mpl.subset_selection_plot(self.subset_selection, self.chosenSSNumber, self.totalSS)
+            if self.resetS == True:
+                self.matplotlibwidget_static_2.mpl.getSubsetSelections(self.subset_selection)
+                self.resetS=False
+            self.matplotlibwidget_static_2.mpl.subset_selection_plot(self.chosenSSNumber, self.totalSS)
         else:
             self.showChooseFileDialog()
 
@@ -264,12 +288,19 @@ class MyMplCanvas(FigureCanvas):
         self.fig = plt.figure(figsize=(width, height))
         #self.openfile_name=''
         self.model = {}
+
+        self.w_count=0
+        self.f_count=0
+        self.s_count=0
         self.layerWeights = {}  # {layer name: weights value}
         self.edgesInLayerName = [] #(input layer name, output layer name)
         self.allLayerNames = []
         self.axesDict = {}
+
         self.activations = {}
-        self.matplotlibwidget_static_2={}
+        self.weights ={}
+        self.subset_selection = {}
+
         self.chosenLayerName=[]
 
         self.ind =0
@@ -280,7 +311,7 @@ class MyMplCanvas(FigureCanvas):
         # subset selection parameters
         self.totalSS =0
         self.chosenSSNumber =0
-        self.subset_selection ={}
+
 
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
@@ -294,28 +325,14 @@ class MyMplCanvas(FigureCanvas):
         plt.imshow(strImg)
 
 
-    def weights_plot(self,model,chosenLayerName):
+    def weights_plot(self,weights,chosenLayerName):
         self.fig.clf()
-        self.model = model
+        self.weights = weights
         self.chosenLayerName=chosenLayerName
-        self.getLayersWeights()
-        self.fig.suptitle("Weights of Layer '{}'".format(self.chosenLayerName))
-        w = self.layerWeights[self.chosenLayerName]
-        if w.ndim == 4:
+        if self.w_count == 0:
+            self.getLayersWeights()
+        self.plot_weight_mosaic()
 
-            w = np.transpose(w, (3, 2, 0, 1))
-            mosaic_number = w.shape[0]
-            nrows = int(np.round(np.sqrt(mosaic_number)))
-            ncols = int(nrows)
-
-            if nrows ** 2 < mosaic_number:
-                ncols += 1
-
-            self.fig = self.plot_weight_mosaic(w[:mosaic_number, 0], nrows, ncols, self.fig)
-            self.draw()
-
-        else:
-            pass
 
     def features_plot(self,activations, chosenLayerName, chosenPatchNumber,totalPatches):
 
@@ -341,9 +358,8 @@ class MyMplCanvas(FigureCanvas):
         else:
             pass
 
-    def subset_selection_plot(self, subset_selection, chosenSSNumber, totalSS):
-        self.subset_selection=subset_selection
-        self.subset_selection =np.squeeze(self.subset_selection, axis=1)
+    def subset_selection_plot(self, chosenSSNumber, totalSS):
+
         self.chosenSSNumber =chosenSSNumber
         self.totalSS = totalSS
         self.indSS = self.chosenSSNumber - 1
@@ -351,37 +367,9 @@ class MyMplCanvas(FigureCanvas):
 
         self.fig.clear()
         self.plot_subset_mosaic(ss)
-        self.fig.suptitle("Subset Selection of Patch #{}".format(self.chosenSSNumber))
         self.draw()
 
-    def getLayersWeights(self):
-        weights = self.model['weights']
-        for i in weights:
-            p = 'weights' + '/' + i
-            self.layerWeights[i] = self.model[p]
-
-    def getLayersFeatures(self):
-        model = h5py.File(self.openfile_name, 'r')
-        layersName = []
-        layersFeatures = {}
-
-        for i in model['layers']:
-            layerIndex = 'layers' + '/' + i
-
-            for n in model[layerIndex]:
-                layerName = layerIndex + '/' + n
-                layersName.append(n)
-
-                featurePath = layerName + '/' + 'activation'
-                layersFeatures[n] = model[featurePath]
-        # model.close()
-        return layersName, layersFeatures
-
-    def getSubsetSelections(self):
-
-        self.subset_selection=self.model['subset_selection']
-
-    def plot_weight_mosaic(self,im, nrows, ncols, fig,**kwargs):
+    def plot_weight_mosaic(self,**kwargs):
 
         # Set default matplotlib parameters
         if not 'interpolation' in kwargs.keys():
@@ -390,26 +378,39 @@ class MyMplCanvas(FigureCanvas):
         if not 'cmap' in kwargs.keys():
             kwargs['cmap'] = "gray"
 
-        nimgs = len(im)
-        imshape = im[0].shape
+        #self.fig.suptitle("Weights of Layer '{}'".format(self.chosenLayerName))
+        w = self.layerWeights[self.chosenLayerName]
+        if w.ndim == 4:
 
-        mosaic = np.zeros(imshape)
+            w = np.transpose(w, (3, 2, 0, 1))
+            mosaic_number = w.shape[0]
+            w = w[:mosaic_number, 0]
+            nrows = int(np.round(np.sqrt(mosaic_number)))
+            ncols = int(nrows)
 
-        for i in range(nimgs):
-            row = int(np.floor(i / ncols))
-            col = i % ncols
+            if nrows ** 2 < mosaic_number:
+                ncols += 1
 
-            ax = fig.add_subplot(nrows, ncols,i+1)
-            ax.set_xlim(0,imshape[0]-1)
-            ax.set_ylim(0,imshape[1]-1)
+            imshape = w[0].shape
 
-            mosaic = im[i]
+            for i in range(mosaic_number):
 
-            ax.imshow(mosaic, **kwargs)
-            ax.set_axis_off()
+                ax = self.fig.add_subplot(nrows, ncols, i + 1)
+                ax.set_xlim(0, imshape[0] - 1)
+                ax.set_ylim(0, imshape[1] - 1)
 
-        fig.canvas.mpl_connect('button_press_event', self.on_click)
-        return fig
+                mosaic = w[i]
+
+                ax.imshow(mosaic, **kwargs)
+                ax.set_axis_off()
+
+            self.fig.suptitle("Weights of Layer '{}'".format(self.chosenLayerName))
+            self.draw()
+
+        else:
+            pass
+
+        self.fig.canvas.mpl_connect('button_press_event', self.on_click)
 
     def plot_feature_mosaic(self,im, nrows, ncols, **kwargs):
 
@@ -480,6 +481,7 @@ class MyMplCanvas(FigureCanvas):
         else:
             print('the dimension of the subset selection is not right')
 
+        self.fig.suptitle("Subset Selection of Patch #{}".format(self.indSS+1))
         self.fig.canvas.mpl_connect('button_press_event', self.on_click)
         self.fig.canvas.mpl_connect('scroll_event', self.onscrollSS)
 
@@ -566,6 +568,30 @@ class MyMplCanvas(FigureCanvas):
             self.wheel_scroll_signal.emit(self.ind + 1)
         else:
             pass
+
+    def getLayersWeights(self):
+        for i in self.weights:
+            self.layerWeights[i] = self.weights[i]
+
+    def getLayersFeatures(self):
+        model = h5py.File(self.openfile_name, 'r')
+        layersName = []
+        layersFeatures = {}
+
+        for i in model['layers']:
+            layerIndex = 'layers' + '/' + i
+
+            for n in model[layerIndex]:
+                layerName = layerIndex + '/' + n
+                layersName.append(n)
+
+                featurePath = layerName + '/' + 'activation'
+                layersFeatures[n] = model[featurePath]
+        # model.close()
+        return layersName, layersFeatures
+
+    def getSubsetSelections(self,subset_selection):
+        self.subset_selection = subset_selection
 
 
 class MatplotlibWidget(QWidget):
