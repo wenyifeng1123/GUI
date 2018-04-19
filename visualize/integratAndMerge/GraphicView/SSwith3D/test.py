@@ -350,10 +350,6 @@ class MyMplCanvas(FigureCanvas):
         ss = self.subset_selection[self.indSS]
 
         self.fig.clear()
-        # if len(ss.shape) == 2:
-        #     self.plot_subset_mosaic(ss)
-        # elif len(ss.shape) == 3:
-        #     self.plot_subset_mosaic_3D(ss)
         self.plot_subset_mosaic(ss)
         self.fig.suptitle("Subset Selection of Patch #{}".format(self.chosenSSNumber))
         self.draw()
@@ -487,35 +483,6 @@ class MyMplCanvas(FigureCanvas):
         self.fig.canvas.mpl_connect('button_press_event', self.on_click)
         self.fig.canvas.mpl_connect('scroll_event', self.onscrollSS)
 
-    def plot_subset_mosaic_3D(self,im,**kwargs):
-        if not 'interpolation' in kwargs.keys():
-            kwargs['interpolation'] = "none"
-
-        if not 'cmap' in kwargs.keys():
-            kwargs['cmap'] = "gray"
-
-
-        im=np.transpose(im,(2,0,1))
-        imshape = im[0].shape
-        nrows = int(np.round(np.sqrt(imshape)))
-        ncols = int(nrows)
-        if (nrows ** 2) < imshape:
-            ncols += 1
-
-        for i in range(imshape):
-            ax = self.fig.add_subplot(nrows, ncols, i + 1)
-            ax.set_xlim(0, imshape[0] - 1)
-            ax.set_ylim(0, imshape[1] - 1)
-
-            mosaic = im[i]
-
-            ax.imshow(mosaic, **kwargs)
-            ax.set_axis_off()
-
-        self.fig.canvas.mpl_connect('button_press_event', self.on_click)
-        self.fig.canvas.mpl_connect('scroll_event', self.onscrollSS3D)
-
-
     def on_click(self,event):
         """Enlarge or restore the selected axis."""
         ax = event.inaxes
@@ -571,7 +538,6 @@ class MyMplCanvas(FigureCanvas):
             self.wheel_scroll_SS_signal.emit(self.indSS+1)
         else:
             pass
-
 
     def onscroll(self, event):
         if event.button == 'up':
