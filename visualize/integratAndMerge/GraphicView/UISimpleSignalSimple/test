@@ -95,10 +95,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
     def wheelScroll(self,ind,oncrollStatus):
-        if oncrollStatus=='onscroll':
+        if oncrollStatus=='onscroll'or oncrollStatus=='onscroll_3D':
             self.horizontalSliderPatch.setValue(ind)
             self.horizontalSliderPatch.valueChanged.connect(self.lcdNumberPatch.display)
-        elif oncrollStatus=='onscrollW' or oncrollStatus=='onscroll_3D':
+        elif oncrollStatus=='onscrollW' :
             self.wheelScrollW(ind)
         elif oncrollStatus=='onscrollSS':
             self.wheelScrollSS(ind)
@@ -828,7 +828,7 @@ class MyMplCanvas(FigureCanvas):
                 self.ind += 1
             featMap = self.activations[self.ind][self.indFS]
             self.fig.clear()
-            self.plot_feature_mosaic(featMap, self.nrows, self.ncols)
+            self.plot_feature_mosaic_3D(featMap, self.nrows, self.ncols)
             self.fig.suptitle("#{} Feature Maps of Patch #{} ".format(self.indFS+1,self.ind + 1))
             self.draw()
             # self.wheel_scroll_3D_signal .emit(self.ind + 1)
@@ -841,7 +841,7 @@ class MyMplCanvas(FigureCanvas):
                 self.ind -= 1
             featMap = self.activations[self.ind][self.indFS]
             self.fig.clear()
-            self.plot_feature_mosaic(featMap, self.nrows, self.ncols)
+            self.plot_feature_mosaic_3D(featMap, self.nrows, self.ncols)
             self.fig.suptitle("#{} Feature Maps of Patch #{} ".format(self.indFS + 1, self.ind + 1))
             self.draw()
             # self.wheel_scroll_3D_signal .emit(self.ind + 1)
