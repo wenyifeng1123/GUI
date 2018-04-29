@@ -1,0 +1,10 @@
+<RCC>
+  <qresource prefix="pic">
+    <file>img/brush.png</file>
+    <file>img/folder.png</file>
+    <file>img/biology.png</file>
+    <file>img/funnel.png</file>
+    <file>img/layers.png</file>
+    <file>img/microscope.png</file>
+  </qresource>
+</RCC>
