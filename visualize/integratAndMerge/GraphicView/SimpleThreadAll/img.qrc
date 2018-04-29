@@ -1,5 +1,7 @@
 <RCC>
   <qresource prefix="pic">
+    <file>img/input.png</file>
+    <file>img/research.png</file>
     <file>img/brush.png</file>
     <file>img/folder.png</file>
     <file>img/biology.png</file>
