@@ -72,13 +72,15 @@ def on_click(event):
 
 batchSize=20
 model=load_model('testout4040_lr_0.0005_bs_128_model.h5')
-#plot_model(model,'mm.png',show_shapes='true')
+plot_model(model,'M2D.png',show_shapes='true')
 #weight_name = '/no_backup/d1240/testout8080/testout8080_lr_0.0001_bs_128_weights.h5'
 
 
 with h5py.File('crossVal4040.h5','r') as hf:
-    X_test = hf['X_test'][:,:100,:,:]
-    y_test = hf['y_test'][:,:100]
+    # X_test = hf['X_test'][:,2160:2200,:,:]
+    # y_test = hf['y_test'][:,2160:2200]
+    X_test = hf['X_test'][:, 6372:6480, :, :]
+    y_test = hf['y_test'][:, 6372:6480]
 
 
 y_test = np.asarray([y_test[:], np.abs(np.asarray(y_test[:], dtype=np.float32) - 1)]).T
@@ -90,7 +92,7 @@ prob_pre = model.predict(X_test, batchSize, 1)
 
 dot = model_to_dot(model, show_shapes=False, show_layer_names=True, rankdir='TB')
 layers_by_depth = model.model.layers_by_depth
-h=h5py.File('M2D.h5','w')
+h=h5py.File('M2D-Motion.h5','w')
 
 modelDimension =[]
 if X_test.ndim==4:
@@ -131,7 +133,7 @@ activation={}
 act=h.create_group('activations')
 for i,layer in enumerate(model.model.layers):
     get_activations = K.function([model.model.layers[0].input, K.learning_phase()], [layer.output, ])
-    activation[layer.name]=get_activations([X_test[:50], 0])[0]
+    activation[layer.name]=get_activations([X_test[:40], 0])[0]
     a = act.create_dataset(layer.name, data=activation[layer.name])
 
 #output    = model.get_output()
@@ -147,33 +149,49 @@ calcGrad = theano.function([input], gradient)
 
 #2. Use subset selection:
 
-step_size = 0.019
-reg_param = 1/(2e-4)
+# step_size = 0.019
+# reg_param = 1/(2e-4)
+
+step_size = 0.19
+reg_param = 0.0000001
 
 #data_c = test[100:110] # extract images from the examples as initial point
 #resultAll = []
-test=X_test[20:40]
+test=X_test[:40]
 
 data_c = test
 oss_v = network_visualization.SubsetSelection(calcGrad, calcCost, data_c, alpha=reg_param, gamma=step_size)
 result = oss_v.optimize(np.random.uniform(0, 1.0, size=data_c.shape))
-# result=result * test
-# result[result>0.2]=1
+result=result * test
+result[result>0]=1
 # result[result<0.2]=0
 
 h.create_dataset('subset_selection', data=result)
 h.close()
 
-fig=plt.figure()
-fig.suptitle('ss')
-
-#result=np.squeeze(result,axis=1)
-nimgs = len(result)
-nrows = int(np.round(np.sqrt(nimgs)))
-ncols = int(nrows)
-if (nrows ** 2) <  nimgs:
-    ncols += 1
-
-fig=plot_subset_mosaic(result, nrows, ncols, fig)
-plt.show()
-
+# fig=plt.figure()
+# fig.suptitle('change gamma result')
+#
+# #result=np.squeeze(result,axis=1)
+# nimgs = len(result)
+# nrows = int(np.round(np.sqrt(nimgs)))
+# ncols = int(nrows)
+# if (nrows ** 2) <  nimgs:
+#     ncols += 1
+#
+# fig=plot_subset_mosaic(result, nrows, ncols, fig)
+# plt.show()
+#
+# fig2=plt.figure(2)
+# fig2.suptitle('input')
+#
+# #result=np.squeeze(result,axis=1)
+# nimgs = len(test)
+# nrows = int(np.round(np.sqrt(nimgs)))
+# ncols = int(nrows)
+# if (nrows ** 2) <  nimgs:
+#     ncols += 1
+#
+# fig2=plot_subset_mosaic(test, nrows, ncols, fig2)
+# plt.show()
+#
