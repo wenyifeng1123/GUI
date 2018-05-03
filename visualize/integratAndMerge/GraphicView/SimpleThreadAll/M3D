@@ -156,7 +156,8 @@ test=X_test[:]
 data_c = test
 oss_v = network_visualization.SubsetSelection(calcGrad, calcCost, data_c, alpha=reg_param, gamma=step_size)
 result = oss_v.optimize(np.random.uniform(0, 1.0, size=data_c.shape))
-
+result=result * test
+result[result>0]=1
 
 
 h3.create_dataset('subset_selection', data=result)
