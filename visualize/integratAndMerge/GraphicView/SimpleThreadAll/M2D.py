@@ -72,7 +72,7 @@ def on_click(event):
 
 batchSize=20
 model=load_model('testout4040_lr_0.0005_bs_128_model.h5')
-plot_model(model,'M2D.png',show_shapes='true')
+# plot_model(model,'M2D.png',show_shapes='true')
 #weight_name = '/no_backup/d1240/testout8080/testout8080_lr_0.0001_bs_128_weights.h5'
 
 
@@ -93,6 +93,7 @@ prob_pre = model.predict(X_test, batchSize, 1)
 dot = model_to_dot(model, show_shapes=False, show_layer_names=True, rankdir='TB')
 layers_by_depth = model.model.layers_by_depth
 h=h5py.File('M2D-Motion.h5','w')
+# h=h5py.File('M2D-NonMotion.h5','w')
 
 modelDimension =[]
 if X_test.ndim==4:
@@ -133,7 +134,7 @@ activation={}
 act=h.create_group('activations')
 for i,layer in enumerate(model.model.layers):
     get_activations = K.function([model.model.layers[0].input, K.learning_phase()], [layer.output, ])
-    activation[layer.name]=get_activations([X_test[:40], 0])[0]
+    activation[layer.name]=get_activations([X_test[:], 0])[0]
     a = act.create_dataset(layer.name, data=activation[layer.name])
 
 #output    = model.get_output()
@@ -157,7 +158,7 @@ reg_param = 0.0000001
 
 #data_c = test[100:110] # extract images from the examples as initial point
 #resultAll = []
-test=X_test[:40]
+test=X_test[:]
 
 data_c = test
 oss_v = network_visualization.SubsetSelection(calcGrad, calcCost, data_c, alpha=reg_param, gamma=step_size)
