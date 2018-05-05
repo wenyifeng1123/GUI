@@ -51,6 +51,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lcdNumberSlice.hide()
         # self.lcdNumberSS.hide()
 
+        self.wyChooseFile.setToolTip('Choose .H5 File')
+        self.wyShowArchitecture.setToolTip('Show the Architecture')
+        self.radioButton.setToolTip('Weights of Filters')
+        self.radioButton_2.setToolTip('Feature Maps')
+        self.wyPlot.setToolTip('Plot Weights or Filters')
+        self.labelPatch.setToolTip('Number of Input Patch')
+        self.labelSlice.setToolTip('Number of Feature Maps')
+        self.wySubsetSelection.setToolTip('Created Input Patches With Subset Selection')
+
+
         self.resetW=False
         self.resetF = False
         self.resetS = False
@@ -216,6 +226,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.modelDimension=str(a)[3:5]
 
             self.weights =self.model['weights']
+
             if self.modelDimension =='3D':
                 for i in self.weights:
                     self.LayerWeights[i] = self.weights[i].value
@@ -389,7 +400,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         if self.act[self.chosenLayerName].ndim == 5:
                             self.activations = self.act[self.chosenLayerName]
                             self.totalPatches = self.activations.shape[0]
-                            self.totalPatchesSlices=self.activations.shape[2]
+                            self.totalPatchesSlices=self.activations.shape[1]
 
                             self.matplotlibwidget_static.mpl.getLayersFeatures_3D(self.activations, self.totalPatches,self.totalPatchesSlices)
 
