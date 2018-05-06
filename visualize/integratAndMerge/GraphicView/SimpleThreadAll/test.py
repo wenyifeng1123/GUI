@@ -138,7 +138,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             layerPath = 'activations' + '/' + i
             self.act[i] = self.model[layerPath]
             if self.act[i].ndim==5 and self.modelDimension=='3D':
-                self.act[i]=np.transpose(self.act[i],(0,1,4,2,3))
+                self.act[i]=np.transpose(self.act[i],(0,4,1,2,3))
         self.qList = qList
 
     def sliderValue(self):
