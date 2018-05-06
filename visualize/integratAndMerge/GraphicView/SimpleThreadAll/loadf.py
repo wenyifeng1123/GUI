@@ -181,7 +181,7 @@ class MyMplCanvas(FigureCanvas):
 
     def loadImage(self):
 
-        strImg = mpimg.imread('model.png')
+        strImg = mpimg.imread('M2DModel.png')
         ax=self.fig.add_subplot(111)
         ax.imshow(strImg)
         ax.set_axis_off()
