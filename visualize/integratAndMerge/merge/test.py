@@ -67,7 +67,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.labelPatch.setToolTip('Number of Input Patch')
         self.labelSlice.setToolTip('Number of Feature Maps')
         self.wySubsetSelection.setToolTip('Created Input Patches With Subset Selection')
-
+        self.radioButton_3.setToolTip('Plot the 1st input')
+        self.radioButton_4.setToolTip('Plot the 2nd input')
 
         self.resetW=False
         self.resetF = False
@@ -271,6 +272,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             self.modelName=self.model['modelName'].value
             temp_model=load_model(self.modelName)
+            plot_model(temp_model, 'model.png')
             if self.twoInput:
                 self.modelInput=temp_model.input[0]
                 self.modelInput2=temp_model.input[1]
@@ -326,6 +328,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # self.scrollArea.show()
             # structure
             self.canvasStructure = MyMplCanvas()
+
             self.canvasStructure.loadImage()
             self.graphicscene = QtWidgets.QGraphicsScene()
             self.graphicscene.addWidget(self.canvasStructure)
@@ -576,6 +579,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.newf = loadImage_subset_selection_plot(self.matplotlibwidget_static, self.chosenSSNumber)
                     self.newf.trigger.connect(self.loadEnd)
                     self.newf.start()
+
+                else:
+                    self.showChooseInput()
             else:
                 print('the number of input should be 1 or 2')
 
@@ -608,7 +614,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                         "Warning",
                                         "This layer does not have weighst,please select other layers",
                                         QMessageBox.Ok)
-
 
     def showWeightsDimensionError(self):
         reply = QMessageBox.information(self,
@@ -668,6 +673,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         result[result>0]=1
         self.ssResult=result
 
+    def showChooseInput(self):
+        reply = QMessageBox.information(self,
+                                        "Warning",
+                                        "Please select to plot the input 1 or 2",
+                                        QMessageBox.Ok)
 
 
 class MatplotlibWidget(QWidget):
