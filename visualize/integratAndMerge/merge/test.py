@@ -83,9 +83,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.chosenPatchSliceNumber =1
         self.chosenSSNumber = 1
         self.openfile_name=''
+        self.inputData_name=''
+        self.inputData={}
         self.inputalpha = '0.19'
         self.inputGamma = '0.0000001'
 
+        self.layer_index_name = {}
         self.model={}
         self.qList=[]
         self.totalWeights=0
@@ -101,6 +104,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ssResult={}
         self.activations = {}
         self.act = {}
+        self.layers_by_depth={}
         self.weights ={}
         self.w={}
         self.LayerWeights = {}
@@ -165,16 +169,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.chosenLayerName = self.qList[qModelIndex.row()]
 
-    def show_layer_names(self):
-        qList = []
-        activations = self.model['activations']
+    def simpleName(self,inpName):
+        if "/" in inpName:
+            inpName = inpName.split("/")[0]
+            if ":" in inpName:
+                inpName = inpName.split(':')[0]
+        elif ":" in inpName:
+            inpName = inpName.split(":")[0]
+            if "/" in inpName:
+                inpName = inpName.split('/')[0]
 
-        for i in activations:
+        return inpName
+
+    def show_layer_name(self):
+        qList = []
+
+        for i in self.act:
             qList.append(i)
-            layerPath = 'activations' + '/' + i
-            self.act[i] = self.model[layerPath]
-            if self.act[i].ndim==5 and self.modelDimension=='3D':
-                self.act[i]=np.transpose(self.act[i],(0,4,1,2,3))
+
+            # if self.act[i].ndim==5 and self.modelDimension=='3D':
+            #     self.act[i]=np.transpose(self.act[i],(0,4,1,2,3))
         self.qList = qList
 
     def sliderValue(self):
@@ -258,75 +272,219 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.lcdNumberPatch.hide()
             self.matplotlibwidget_static.mpl.fig.clf()
 
+            self.model=load_model(self.openfile_name)
+            print()
 
-            self.model=h5py.File(self.openfile_name,'r')
-            # self.model['modelDimension'] = str(self.model['modelDimension'].value)[3:5]
-            a=self.model['modelDimension'].value
-            self.modelDimension=a
-            # self.modelDimension=str(a)[3:5]
 
-            self.twoInput = self.model['twoInput'].value
-            if self.twoInput:
-                self.radioButton_3.show()
-                self.radioButton_4.show()
 
-            self.modelName=self.model['modelName'].value
-            temp_model=load_model(self.modelName)
-            plot_model(temp_model, 'model.png')
-            if self.twoInput:
-                self.modelInput=temp_model.input[0]
-                self.modelInput2=temp_model.input[1]
+    @pyqtSlot()
+    def on_wyInputData_clicked(self):
+        self.inputData_name = QFileDialog.getOpenFileName(self, 'Choose the file', '.', 'H5 files(*.h5)')[0]
+        if len(self.inputData_name)==0:
+            pass
+        else:
+            if len(self.openfile_name) != 0:
+                self.horizontalSliderPatch.hide()
+                self.horizontalSliderSlice.hide()
+                self.labelPatch.hide()
+                self.labelSlice.hide()
+                self.lcdNumberSlice.hide()
+                self.lcdNumberPatch.hide()
+                self.matplotlibwidget_static.mpl.fig.clf()
+
+                self.inputData=h5py.File(self.inputData_name,'r')
+                # the number of the input
+                for i in self.inputData:
+                    if i == 'X_test_p2' or i == 'y_test_p2':
+                        self.twoInput = True
+                        break
+
+                if self.inputData['X_test'].ndim == 4:
+                    self.modelDimension = '2D'
+                    X_test = self.inputData['X_test'][:, 2052:2160, :, :]
+                    X_test = np.transpose(np.array(X_test), (1, 0, 2, 3))
+                    self.subset_selection = X_test
+
+                    if self.twoInput:
+                        X_test_p2 = self.inputData['X_test_p2'][:, 2052:2160, :, :]
+                        X_test_p2 = np.transpose(np.array(X_test_p2), (1, 0, 2, 3))
+                        self.subset_selection_2 = X_test_p2
+
+
+                elif self.inputData['X_test'].ndim == 5:
+                    self.modelDimension = '3D'
+                    X_test = self.inputData['X_test'][:, 0:20, :, :, :]
+                    X_test = np.transpose(np.array(X_test), (1, 0, 2, 3, 4))
+                    self.subset_selection = X_test
+
+                    if self.twoInput:
+                        X_test_p2 = self.inputData['X_test_p2'][:, 0:20, :, :, :]
+                        X_test_p2 = np.transpose(np.array(X_test_p2), (1, 0, 2, 3, 4))
+                        self.subset_selection_2 = X_test_p2
+
+                else:
+                    print('the dimension of X_test should be 4 or 5')
+
+                if self.twoInput:
+                    self.radioButton_3.show()
+                    self.radioButton_4.show()
+
+
+                plot_model(self.model, 'model.png')
+                if self.twoInput:
+                    self.modelInput = self.model.input[0]
+                    self.modelInput2 = self.model.input[1]
+                else:
+                    self.modelInput = self.model.input
+
+                self.layer_index_name = {}
+                for i, layer in enumerate(self.model.layers):
+                    self.layer_index_name[layer.name] = i
+
+
+                for i, layer in enumerate(self.model.input_layers):
+
+                    get_activations = K.function([layer.input, K.learning_phase()],
+                                                 [layer.output, ])
+
+                    if i == 0:
+                        self.act[layer.name] = get_activations([self.subset_selection, 0])[0]
+                    elif i == 1:
+                        self.act[layer.name] = get_activations([self.subset_selection_2, 0])[0]
+                    else:
+                        print('no output of the input layer is created')
+
+                for i, layer in enumerate(self.model.layers):
+                    # input_len=layer.input.len()
+                    if hasattr(layer.input, "__len__"):
+                        if len(layer.input) == 2:
+                            inputLayerNameList = []
+                            for ind_li, layerInput in enumerate(layer.input):
+                                inputLayerNameList.append(self.simpleName(layerInput.name))
+
+                            get_activations = K.function([layer.input[0], layer.input[1], K.learning_phase()],
+                                                         [layer.output, ])
+                            self.act[layer.name] = get_activations([self.act[inputLayerNameList[0]],
+                                                                    self.act[inputLayerNameList[1]],
+                                                                             0])[0]
+
+                        elif len(layer.input) == 3:
+                            inputLayerNameList = []
+                            for ind_li, layerInput in enumerate(layer.input):
+                                inputLayerNameList.append(self.simpleName(layerInput.name))
+
+                            get_activations = K.function(
+                                [layer.input[0], layer.input[1], layer.input[2], K.learning_phase()], [layer.output, ])
+                            self.act[layer.name] = get_activations([self.act[inputLayerNameList[0]],
+                                                                    self.act[inputLayerNameList[1]],
+                                                                    self.act[inputLayerNameList[2]],
+                                                                             0])[0]
+
+                        elif len(layer.input) == 4:
+                            inputLayerNameList = []
+                            for ind_li, layerInput in enumerate(layer.input):
+                                inputLayerNameList.append(self.simpleName(layerInput.name))
+
+                            get_activations = K.function(
+                                [layer.input[0], layer.input[1], layer.input[2], layer.input[3], K.learning_phase()],
+                                [layer.output, ])
+                            self.act[layer.name] = get_activations([self.act[inputLayerNameList[0]],
+                                                                    self.act[inputLayerNameList[1]],
+                                                                    self.act[inputLayerNameList[2]],
+                                                                    self.act[inputLayerNameList[3]],
+                                                                             0])[0]
+
+                        elif len(layer.input) == 5:
+                            inputLayerNameList = []
+                            for ind_li, layerInput in enumerate(layer.input):
+                                inputLayerNameList.append(self.simpleName(layerInput.name))
+
+                            get_activations = K.function(
+                                [layer.input[0], layer.input[1], layer.input[2], layer.input[3], layer.input[4],
+                                 K.learning_phase()],
+                                [layer.output, ])
+                            self.act[layer.name] = get_activations([self.act[inputLayerNameList[0]],
+                                                                    self.act[inputLayerNameList[1]],
+                                                                    self.act[inputLayerNameList[2]],
+                                                                    self.act[inputLayerNameList[3]],
+                                                                    self.act[inputLayerNameList[4]],
+                                                                             0])[0]
+
+                        else:
+                            print('the number of input is more than 5')
+
+                    else:
+                        get_activations = K.function([layer.input, K.learning_phase()], [layer.output, ])
+                        inputLayerName = self.simpleName(layer.input.name)
+                        self.act[layer.name] = get_activations([self.act[inputLayerName], 0])[0]
+
+                dot = model_to_dot(self.model, show_shapes=False, show_layer_names=True, rankdir='TB')
+                if hasattr(self.model, "layers_by_depth"):
+                    self.layers_by_depth = self.model.layers_by_depth
+                elif hasattr(self.model.model, "layers_by_depth"):
+                    self.layers_by_depth = self.model.model.layers_by_depth
+                else:
+                    print('the model or model.model should contain parameter layers_by_depth')
+
+                maxCol = 0
+
+                for i in range(len(self.layers_by_depth)):
+
+                    for ind, layer in enumerate(self.layers_by_depth[i]):  # the layers in No i layer in the model
+                        if maxCol < ind:
+                            maxCow = ind
+
+                        if len(layer.weights) == 0:
+                            w = 0
+                        else:
+
+                            w = layer.weights[0]
+                            init = tf.global_variables_initializer()
+                            with tf.Session() as sess_i:
+                                sess_i.run(init)
+                                # print(sess_i.run(w))
+                                w = sess_i.run(w)
+
+                        self.weights[layer.name] = w
+
+                if self.modelDimension == '3D':
+                    for i in self.weights:
+                        # a=self.weights[i]
+                        # b=a.ndim
+                        if hasattr(self.weights[i],"ndim"):
+                            if self.weights[i].ndim==5:
+                                self.LayerWeights[i] = np.transpose(self.weights[i], (4, 3, 2, 0, 1))
+                        else:
+                            self.LayerWeights[i] =self.weights[i]
+                elif self.modelDimension == '2D':
+                    for i in self.weights:
+                        if hasattr(self.weights[i], "ndim"):
+
+                            if self.weights[i].ndim == 4:
+                                self.LayerWeights[i] = np.transpose(self.weights[i], (3, 2, 0, 1))
+                        else:
+                            self.LayerWeights[i] = self.weights[i]
+                else:
+                    print('the dimesnion of the weights should be 2D or 3D')
+
+                self.show_layer_name()
+
+                self.totalSS = len(self.subset_selection)
+
+                # show the activations' name in the List
+                slm = QStringListModel();
+                slm.setStringList(self.qList)
+                self.listView.setModel(slm)
+
             else:
-                self.modelInput = temp_model.input
+                self.showChooseFileDialog()
 
-            self.weights =self.model['weights']
-
-            if self.modelDimension =='3D':
-                for i in self.weights:
-                    self.LayerWeights[i] = self.weights[i].value
-                    if self.LayerWeights[i].ndim == 5:
-                        self.LayerWeights[i] = np.transpose(self.LayerWeights[i], (4,3,2,0,1))
-            elif self.modelDimension =='2D':
-                for i in self.weights:
-                    # self.layerWeights[i] = self.weights[i].value
-                    self.LayerWeights[i]=self.weights[i].value
-
-                    if self.LayerWeights[i].ndim == 4:
-                        self.LayerWeights[i] = np.transpose(self.LayerWeights[i], (3,2,0,1))
-            else:
-                print('the dimesnion of the weights should be 2D or 3D')
-
-
-            self.show_layer_names()
-
-            self.subset_selection =np.array(self.model['subset_selection'])
-            if self.twoInput:
-                self.subset_selection_2 = np.array(self.model['subset_selection_2'])
-
-            # if self.modelDimension=='2D':
-            #     self.subset_selection = np.transpose(np.array(self.subset_selection), (1, 0, 2, 3))
-            # elif self.modelDimension=='3D':
-            #     self.subset_selection = np.transpose(np.array(self.subset_selection), (1, 0, 2, 3, 4))
-            # else:
-            #     print('the subset selection data should be 2D or 3D')
-            # self.subset_selection = np.squeeze(self.subset_selection, axis=1)
-            self.totalSS = len(self.subset_selection)
-
-            # show the activations' name in the List
-            slm = QStringListModel();
-            slm.setStringList(self.qList)
-            self.listView.setModel(slm)
 
     @pyqtSlot()
     def on_wyShowArchitecture_clicked(self):
         # Show the structure of the model and plot the weights
         if len(self.openfile_name) != 0:
-            # show the weights
-            # self.matplotlibwidget_static_2.hide()
-            # self.matplotlibwidget_static.hide()
-            # self.matplotlibwidget_static_3.show()
-            # self.scrollArea.show()
-            # structure
+
             self.canvasStructure = MyMplCanvas()
 
             self.canvasStructure.loadImage()
@@ -355,68 +513,80 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.W_F='w'
                     # show the weights
                     if self.modelDimension == '2D':
-                        if self.LayerWeights[self.chosenLayerName].ndim==4:
-                            self.lcdNumberPatch.hide()
-                            self.lcdNumberSlice.hide()
-                            self.horizontalSliderPatch.hide()
-                            self.horizontalSliderSlice.hide()
-                            self.labelPatch.hide()
-                            self.labelSlice.hide()
+                        if hasattr(self.LayerWeights[self.chosenLayerName], "ndim"):
 
-                            self.overlay = Overlay(self.centralWidget())  # self.scrollArea self.centralWidget()
-                            self.overlay.setGeometry(QtCore.QRect(500, 350, 171, 141))
-                            self.overlay.show()
+                            if self.LayerWeights[self.chosenLayerName].ndim==4:
+                                self.lcdNumberPatch.hide()
+                                self.lcdNumberSlice.hide()
+                                self.horizontalSliderPatch.hide()
+                                self.horizontalSliderSlice.hide()
+                                self.labelPatch.hide()
+                                self.labelSlice.hide()
 
-                            self.matplotlibwidget_static.mpl.getLayersWeights(self.LayerWeights)
-                            from loadf import loadImage_weights_plot_2D
-                            self.wyPlot.setDisabled(True)
-                            self.newW2D = loadImage_weights_plot_2D(self.matplotlibwidget_static,self.chosenLayerName)
-                            self.newW2D.trigger.connect(self.loadEnd)
-                            self.newW2D.start()
+                                self.overlay = Overlay(self.centralWidget())  # self.scrollArea self.centralWidget()
+                                self.overlay.setGeometry(QtCore.QRect(500, 350, 171, 141))
+                                self.overlay.show()
 
-                            # self.matplotlibwidget_static.mpl.weights_plot_2D(self.chosenLayerName)
-                            self.matplotlibwidget_static.show()
-                        elif self.LayerWeights[self.chosenLayerName].ndim==0:
+                                self.matplotlibwidget_static.mpl.getLayersWeights(self.LayerWeights)
+                                from loadf import loadImage_weights_plot_2D
+                                self.wyPlot.setDisabled(True)
+                                self.newW2D = loadImage_weights_plot_2D(self.matplotlibwidget_static,self.chosenLayerName)
+                                self.newW2D.trigger.connect(self.loadEnd)
+                                self.newW2D.start()
+
+                                # self.matplotlibwidget_static.mpl.weights_plot_2D(self.chosenLayerName)
+                                self.matplotlibwidget_static.show()
+                            # elif self.LayerWeights[self.chosenLayerName].ndim==0:
+                            #     self.showNoWeights()
+                            else:
+                                self.showWeightsDimensionError()
+
+                        elif self.LayerWeights[self.chosenLayerName]==0:
                             self.showNoWeights()
-                        else:
-                            self.showWeightsDimensionError()
+
 
                     elif self.modelDimension == '3D':
-                        if self.LayerWeights[self.chosenLayerName].ndim == 5:
+                        if hasattr(self.LayerWeights[self.chosenLayerName],"ndim"):
 
-                            self.w=self.LayerWeights[self.chosenLayerName]
-                            self.totalWeights=self.w.shape[0]
-                            # self.totalWeightsSlices=self.w.shape[2]
-                            self.horizontalSliderPatch.setMinimum(1)
-                            self.horizontalSliderPatch.setMaximum(self.totalWeights)
-                            # self.horizontalSliderSlice.setMinimum(1)
-                            # self.horizontalSliderSlice.setMaximum(self.totalWeightsSlices)
-                            self.chosenWeightNumber=1
-                            self.horizontalSliderPatch.setValue(self.chosenWeightNumber)
+                            if self.LayerWeights[self.chosenLayerName].ndim == 5:
 
-                            self.overlay = Overlay(self.centralWidget())  # self.scrollArea self.centralWidget()
-                            self.overlay.setGeometry(QtCore.QRect(500, 350, 171, 141))
-                            self.overlay.show()
+                                self.w=self.LayerWeights[self.chosenLayerName]
+                                self.totalWeights=self.w.shape[0]
+                                # self.totalWeightsSlices=self.w.shape[2]
+                                self.horizontalSliderPatch.setMinimum(1)
+                                self.horizontalSliderPatch.setMaximum(self.totalWeights)
+                                # self.horizontalSliderSlice.setMinimum(1)
+                                # self.horizontalSliderSlice.setMaximum(self.totalWeightsSlices)
+                                self.chosenWeightNumber=1
+                                self.horizontalSliderPatch.setValue(self.chosenWeightNumber)
 
-                            from loadf import loadImage_weights_plot_3D
-                            self.wyPlot.setDisabled(True)
-                            self.newW3D = loadImage_weights_plot_3D(self.matplotlibwidget_static, self.w,self.chosenWeightNumber,self.totalWeights,self.totalWeightsSlices)
-                            self.newW3D.trigger.connect(self.loadEnd)
-                            self.newW3D.start()
+                                self.overlay = Overlay(self.centralWidget())  # self.scrollArea self.centralWidget()
+                                self.overlay.setGeometry(QtCore.QRect(500, 350, 171, 141))
+                                self.overlay.show()
 
-                            # self.matplotlibwidget_static.mpl.weights_plot_3D(self.w,self.chosenWeightNumber,self.totalWeights,self.totalWeightsSlices)
+                                from loadf import loadImage_weights_plot_3D
+                                self.wyPlot.setDisabled(True)
+                                self.newW3D = loadImage_weights_plot_3D(self.matplotlibwidget_static, self.w,self.chosenWeightNumber,self.totalWeights,self.totalWeightsSlices)
+                                self.newW3D.trigger.connect(self.loadEnd)
+                                self.newW3D.start()
 
-                            self.matplotlibwidget_static.show()
-                            self.horizontalSliderSlice.hide()
-                            self.horizontalSliderPatch.show()
-                            self.labelPatch.show()
-                            self.labelSlice.hide()
-                            self.lcdNumberSlice.hide()
-                            self.lcdNumberPatch.show()
-                        elif self.LayerWeights[self.chosenLayerName].ndim==0:
+                                # self.matplotlibwidget_static.mpl.weights_plot_3D(self.w,self.chosenWeightNumber,self.totalWeights,self.totalWeightsSlices)
+
+                                self.matplotlibwidget_static.show()
+                                self.horizontalSliderSlice.hide()
+                                self.horizontalSliderPatch.show()
+                                self.labelPatch.show()
+                                self.labelSlice.hide()
+                                self.lcdNumberSlice.hide()
+                                self.lcdNumberPatch.show()
+                            # elif self.LayerWeights[self.chosenLayerName].ndim==0:
+                            #     self.showNoWeights()
+                            else:
+                                self.showWeightsDimensionError3D()
+
+                        elif self.LayerWeights[self.chosenLayerName]==0:
                             self.showNoWeights()
-                        else:
-                            self.showWeightsDimensionError3D()
+
                     else:
                         print('the dimesnion should be 2D or 3D')
 
@@ -594,7 +764,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def showChooseFileDialog(self):
         reply = QMessageBox.information(self,
                                         "Warning",
-                                        "Please select one H5 File at first",
+                                        "Please select one H5 File first",
                                         QMessageBox.Ok )
 
     def showChooseLayerDialog(self):
@@ -612,7 +782,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def showNoWeights(self):
         reply = QMessageBox.information(self,
                                         "Warning",
-                                        "This layer does not have weighst,please select other layers",
+                                        "This layer does not have weights,please select other layers",
                                         QMessageBox.Ok)
 
     def showWeightsDimensionError(self):
